@@ -1,0 +1,173 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String    @id @default(uuid())
+  name          String?
+  username      String    @unique
+  password      String
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  wallets       Wallet[]
+  receivables   Receivable[]
+  sinkingFunds  SinkingFund[]
+  budgets       Budget[]
+  debts         Debt[]
+  creditCards   CreditCard[]
+  categories    Category[]
+}
+
+model Wallet {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String   // e.g. "Efectivo", "BBVA"
+  balance   Float    @default(0) // Updated via transactions
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transactions Transaction[]
+}
+
+model Category {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String   // e.g. "Salidas", "Comida", "Transporte"
+  type      CategoryType
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  transactions Transaction[]
+  budgets      Budget[]
+}
+
+enum CategoryType {
+  INCOME
+  EXPENSE
+  TRANSFER
+}
+
+model Transaction {
+  id          String   @id @default(uuid())
+  walletId    String
+  wallet      Wallet   @relation(fields: [walletId], references: [id], onDelete: Cascade)
+  categoryId  String?
+  category    Category? @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  amount      Float    // Positive for income, negative for expense
+  type        TransactionType
+  description String?
+  date        DateTime @default(now())
+  createdAt   DateTime @default(now())
+
+  // For transfers between wallets
+  destinationWalletId String? 
+}
+
+enum TransactionType {
+  INCOME
+  EXPENSE
+  TRANSFER
+}
+
+// Cuentas por cobrar (Dinero que te deben y abonos)
+model Receivable {
+  id              String   @id @default(uuid())
+  userId          String
+  user            User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  debtorName      String   // e.g. "Mi trabajo", "Juan"
+  currentBalance  Float    @default(0) // Saldo total actual que te deben
+  recurringAmount Float    @default(0) // Monto que aumenta cada periodo (ej. 2900)
+  frequencyType   String   @default("WEEKLY") // "DAILY", "WEEKLY", "BIWEEKLY", "MONTHLY", "CUSTOM"
+  frequencyDays   Int      @default(7) // Frecuencia en días
+  anchorDay       Int?     // Semanal: 0=Dom, 1=Lun..6=Sab. Mensual: 1-31 día del mes
+  nextAccrualDate DateTime @default(now()) // Fecha exacta del próximo corte/aumento programado
+  notes           String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+}
+
+enum SinkingFundCycleType {
+  STRICT
+  ESTIMATED
+}
+
+// Fondos de reserva (Gastos recurrentes)
+model SinkingFund {
+  id                String   @id @default(uuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name              String   // e.g. "Croquetas"
+  targetAmount      Float    // e.g. 1000
+  frequencyDays     Int      // e.g. 34
+  cycleType         SinkingFundCycleType @default(STRICT)
+  nextDueDate       DateTime
+  accumulatedAmount Float    @default(0)
+  isOneOff          Boolean  @default(false)
+  isCompleted       Boolean  @default(false)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+}
+
+// Topes / Presupuestos
+model Budget {
+  id            String   @id @default(uuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categoryId    String
+  category      Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  limitAmount   Float    // e.g. 600
+  frequencyDays Int      // e.g. 7 (semanal)
+  startDate     DateTime @default(now())
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+// Pasivos (Deudas propias)
+model Debt {
+  id                   String   @id @default(uuid())
+  userId               String
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name                 String   // e.g. "Tarjeta de crédito", "Préstamo auto"
+  totalAmount          Float
+  remainingAmount      Float
+  targetContribution   Float    // E.g. Cuanto quiero aportar
+  contributionFreqDays Int      // Cada cuantos días
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+}
+
+// Tarjetas de Crédito / Cuentas de Deuda
+model CreditCard {
+  id              String           @id @default(uuid())
+  userId          String
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name            String           // e.g. "Nu", "Banamex", "Préstamo"
+  cutoffDay       Int?             // Día de corte del mes (1-31)
+  paymentDay      Int?             // Día límite de pago del mes (1-31)
+  purchases       CreditPurchase[]
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+}
+
+// Compras a crédito o a Meses Sin Intereses (MSI)
+model CreditPurchase {
+  id             String     @id @default(uuid())
+  creditCardId   String
+  creditCard     CreditCard @relation(fields: [creditCardId], references: [id], onDelete: Cascade)
+  description    String     // e.g. "Laptop a meses", "Despensa"
+  totalAmount    Float      // Monto total de la compra
+  totalMonths    Int        @default(1) // 1 si es pago de contado en la tarjeta, o número de meses (3, 6, 12, etc.)
+  paidMonths     Int        @default(0) // Cuántos meses se han liquidado
+  monthlyPayment Float      // Cuánto se paga cada mes
+  isCompleted    Boolean    @default(false)
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+}
