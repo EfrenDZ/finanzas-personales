@@ -47,7 +47,7 @@ export default function HomeActions({
                 onClick={() => setShowTransactionModal(false)}
                 className="text-gray-400 hover:text-gray-600 text-2xl font-bold p-1"
               >
-                ✕
+                
               </button>
             </div>
             <TransactionForm
@@ -69,7 +69,7 @@ export default function HomeActions({
                 onClick={() => setShowWalletModal(false)}
                 className="text-gray-400 hover:text-gray-600 text-2xl font-bold p-1"
               >
-                ✕
+                
               </button>
             </div>
             <WalletForm onSuccess={() => setShowWalletModal(false)} />

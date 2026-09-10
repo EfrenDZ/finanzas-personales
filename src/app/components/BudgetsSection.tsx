@@ -197,7 +197,7 @@ export default function BudgetsSection({
                 onClick={() => setExpenseBudget(null)}
                 className="text-gray-400 hover:text-gray-600 text-2xl font-bold p-1 cursor-pointer"
               >
-                ✕
+                
               </button>
             </div>
 
@@ -230,7 +230,7 @@ export default function BudgetsSection({
                 onClick={() => setEditBudget(null)}
                 className="text-gray-400 hover:text-gray-600 text-2xl font-bold p-1 cursor-pointer"
               >
-                ✕
+                
               </button>
             </div>
 
@@ -335,7 +335,7 @@ export default function BudgetsSection({
                   />
                   <div>
                     <span className="text-sm font-bold text-slate-900 block">
-                      🔄 Reiniciar ciclo a partir de hoy
+                       Reiniciar ciclo a partir de hoy
                     </span>
                     <span className="text-xs text-slate-600 mt-0.5 block leading-relaxed">
                       Reinicia el contador de días a 0 hoy. Los gastos anteriores a hoy ya no se contarán dentro del nuevo ciclo. Se solicitará confirmación al guardar.

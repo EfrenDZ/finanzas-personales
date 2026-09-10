@@ -173,7 +173,7 @@ export default function ReceivableForm({ onSuccess }: { onSuccess?: () => void }
               className="w-full px-4 py-3 border border-gray-300 rounded-xl text-slate-900 bg-white outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
             />
             <div className="mt-2 p-2.5 bg-indigo-50 border border-indigo-100 rounded-xl text-xs text-indigo-900 font-medium">
-              💡 {explanationText}
+               {explanationText}
             </div>
           </div>
         </div>

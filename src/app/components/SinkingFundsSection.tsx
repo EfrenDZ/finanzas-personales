@@ -51,18 +51,18 @@ function formatDate(d: Date | string): string {
   return `${day}/${month}/${year}`;
 }
 
-// Cálculo con redondeo hacia arriba (Math.ceil)
 function calculateFundSuggested(fund: SinkingFund, multiplier: number): number {
-  if (fund.isOneOff) {
-    const nextDue = new Date(fund.nextDueDate);
-    const daysLeft = Math.max(1, Math.ceil((nextDue.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
-    const remaining = Math.max(0, fund.targetAmount - fund.accumulatedAmount);
-    const daily = remaining / daysLeft;
-    return Math.ceil(daily * multiplier);
-  } else {
-    const daily = fund.frequencyDays > 0 ? fund.targetAmount / fund.frequencyDays : 0;
-    return Math.ceil(daily * multiplier);
-  }
+  const nextDue = new Date(fund.nextDueDate);
+  // Calculate remaining days (minimum 1 to avoid division by zero)
+  const daysLeft = Math.max(1, Math.ceil((nextDue.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
+  
+  // Calculate remaining amount needed
+  const remaining = Math.max(0, fund.targetAmount - fund.accumulatedAmount);
+  
+  // Calculate daily needed amount based on remaining days
+  const daily = remaining / daysLeft;
+  
+  return Math.ceil(daily * multiplier);
 }
 
 export default function SinkingFundsSection({
@@ -298,7 +298,7 @@ export default function SinkingFundsSection({
                 <h3 className="text-base font-bold text-slate-900">{fund.name}</h3>
                 {fund.isOneOff ? (
                   <span className="text-[10px] font-extrabold bg-amber-50 text-amber-800 border border-amber-200 px-2 py-0.5 rounded-md">
-                    🎯 Meta Futura
+                     Meta Futura
                   </span>
                 ) : (
                   <span className="text-[10px] font-extrabold bg-teal-50 text-teal-800 border border-teal-200 px-2 py-0.5 rounded-md">
@@ -317,7 +317,7 @@ export default function SinkingFundsSection({
               title="Editar apartado"
               className="text-slate-300 hover:text-slate-600 transition-colors text-sm p-1 rounded-lg hover:bg-slate-50"
             >
-              ⚙️
+              ️
             </button>
           </div>
 
@@ -374,7 +374,7 @@ export default function SinkingFundsSection({
             onClick={() => setExpenseModalFund(fund)}
             className="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 px-3 rounded-xl text-xs transition-all active:scale-95 shadow-sm"
           >
-            {fund.isOneOff ? "✓ Cumplir Meta" : "✓ Pagar Gasto"}
+            {fund.isOneOff ? " Cumplir Meta" : " Pagar Gasto"}
           </button>
         </div>
       </div>
@@ -404,7 +404,7 @@ export default function SinkingFundsSection({
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            <span>🔁</span> Apartados Recurrentes ({recurringFunds.length})
+             Apartados Recurrentes ({recurringFunds.length})
           </button>
           <button
             onClick={() => setMainView("GOALS")}
@@ -414,7 +414,7 @@ export default function SinkingFundsSection({
                 : "text-slate-600 hover:text-slate-900"
             }`}
           >
-            <span>🎯</span> Metas a Futuro ({goalFunds.length})
+             Metas a Futuro ({goalFunds.length})
           </button>
         </div>
 
@@ -475,7 +475,7 @@ export default function SinkingFundsSection({
               onClick={openGeneralModal}
               className="bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-black py-3 px-5 rounded-2xl shadow-md transition-all active:scale-95 text-xs sm:text-sm flex items-center justify-center gap-2"
             >
-              <span>⚡</span> Apartado General / Distribuir Dinero
+               Apartado General / Distribuir Dinero
             </button>
           </div>
         </div>
@@ -487,7 +487,7 @@ export default function SinkingFundsSection({
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
             <div>
               <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                <span>🔁</span> Apartados de Gastos Recurrentes
+                 Apartados de Gastos Recurrentes
                 <span className="text-xs font-semibold text-slate-500 bg-slate-100 px-2 py-0.5 rounded-full">
                   {recurringFunds.length} activos
                 </span>
@@ -552,7 +552,7 @@ export default function SinkingFundsSection({
                 <div>
                   <div className="flex items-center justify-between mb-3 bg-slate-50 border border-slate-200/80 px-4 py-2 rounded-xl">
                     <span className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                      📅 Ciclo Semanal (≤ 7 días) • {groupedRecurring.WEEKLY.length} apartados
+                       Ciclo Semanal (≤ 7 días) • {groupedRecurring.WEEKLY.length} apartados
                     </span>
                     <span className="text-xs font-extrabold text-emerald-800">
                       Suma sugerida: ${groupedRecurring.WEEKLY.reduce((acc, f) => acc + calculateFundSuggested(f, multiplier), 0)} {periodLabel}
@@ -569,7 +569,7 @@ export default function SinkingFundsSection({
                 <div>
                   <div className="flex items-center justify-between mb-3 bg-slate-50 border border-slate-200/80 px-4 py-2 rounded-xl">
                     <span className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                      📅 Ciclo Quincenal (8 a 15 días) • {groupedRecurring.BIWEEKLY.length} apartados
+                       Ciclo Quincenal (8 a 15 días) • {groupedRecurring.BIWEEKLY.length} apartados
                     </span>
                     <span className="text-xs font-extrabold text-emerald-800">
                       Suma sugerida: ${groupedRecurring.BIWEEKLY.reduce((acc, f) => acc + calculateFundSuggested(f, multiplier), 0)} {periodLabel}
@@ -586,7 +586,7 @@ export default function SinkingFundsSection({
                 <div>
                   <div className="flex items-center justify-between mb-3 bg-slate-50 border border-slate-200/80 px-4 py-2 rounded-xl">
                     <span className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                      📅 Ciclo Mensual (16 a 31 días) • {groupedRecurring.MONTHLY.length} apartados
+                       Ciclo Mensual (16 a 31 días) • {groupedRecurring.MONTHLY.length} apartados
                     </span>
                     <span className="text-xs font-extrabold text-emerald-800">
                       Suma sugerida: ${groupedRecurring.MONTHLY.reduce((acc, f) => acc + calculateFundSuggested(f, multiplier), 0)} {periodLabel}
@@ -603,7 +603,7 @@ export default function SinkingFundsSection({
                 <div>
                   <div className="flex items-center justify-between mb-3 bg-slate-50 border border-slate-200/80 px-4 py-2 rounded-xl">
                     <span className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-                      📅 Otros Plazos (&gt; 31 días) • {groupedRecurring.OTHER.length} apartados
+                       Otros Plazos (&gt; 31 días) • {groupedRecurring.OTHER.length} apartados
                     </span>
                     <span className="text-xs font-extrabold text-emerald-800">
                       Suma sugerida: ${groupedRecurring.OTHER.reduce((acc, f) => acc + calculateFundSuggested(f, multiplier), 0)} {periodLabel}
@@ -644,7 +644,7 @@ export default function SinkingFundsSection({
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-4">
             <div>
               <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
-                <span>🎯</span> Metas de Ahorro y Gastos a Futuro
+                 Metas de Ahorro y Gastos a Futuro
                 <span className="text-xs font-semibold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">
                   {goalFunds.length} metas
                 </span>
@@ -682,7 +682,7 @@ export default function SinkingFundsSection({
             <div className="flex justify-between items-center p-6 border-b border-gray-100 sticky top-0 bg-white z-10">
               <div>
                 <h3 className="text-xl font-bold text-slate-900 flex items-center gap-2">
-                  <span>⚡</span> Apartado General: Distribuir Dinero
+                   Apartado General: Distribuir Dinero
                 </h3>
                 <p className="text-xs text-slate-500">
                   Prioriza los gastos más próximos a vencer o distribuye según tu estrategia.
@@ -690,10 +690,7 @@ export default function SinkingFundsSection({
               </div>
               <button
                 onClick={() => setShowGeneralModal(false)}
-                className="text-gray-400 hover:text-gray-600 text-2xl font-bold p-1"
-              >
-                ✕
-              </button>
+                className="text-gray-400 hover:text-gray-600 text-2xl font-bold p-1">✕</button>
             </div>
 
             <div className="p-6 overflow-y-auto space-y-5">
@@ -734,7 +731,7 @@ export default function SinkingFundsSection({
                           : "bg-white border border-gray-200 text-slate-700 hover:bg-slate-50"
                       }`}
                     >
-                      <span>⏳</span> Priorizar por Vencimiento
+                       Priorizar por Vencimiento
                     </button>
                     <button
                       type="button"
@@ -745,7 +742,7 @@ export default function SinkingFundsSection({
                           : "bg-white border border-gray-200 text-slate-700 hover:bg-slate-50"
                       }`}
                     >
-                      <span>📊</span> Cuotas Sugeridas
+                       Cuotas Sugeridas
                     </button>
                     <button
                       type="button"
@@ -756,14 +753,14 @@ export default function SinkingFundsSection({
                           : "bg-white border border-gray-200 text-slate-700 hover:bg-slate-50"
                       }`}
                     >
-                      <span>⚖️</span> Proporcional
+                      <span>️</span> Proporcional
                     </button>
                   </div>
                 </div>
 
                 {distributionStrategy === "URGENCY" && (
                   <p className="text-[11px] text-slate-500 bg-white p-2.5 rounded-xl border border-slate-200/80 flex items-center gap-1.5">
-                    <span>💡</span>
+                    
                     <span>
                       <strong>Estrategia de Vencimiento:</strong> Se llena primero al 100% el apartado cuyo pago es más próximo para garantizar que quede cubierto a tiempo.
                     </span>
@@ -875,10 +872,10 @@ export default function SinkingFundsSection({
                   <span className="text-xs font-bold text-emerald-900 block">Total a distribuir hoy:</span>
                   <span className="text-[11px] text-emerald-700">
                     {distributionStrategy === "URGENCY" 
-                      ? "⚡ Prioridad por vencimiento más próximo activa"
+                      ? " Prioridad por vencimiento más próximo activa"
                       : distributionStrategy === "SUGGESTED"
-                      ? "📊 Cuotas sugeridas del periodo"
-                      : "⚖️ Reparto proporcional"}
+                      ? " Cuotas sugeridas del periodo"
+                      : "️ Reparto proporcional"}
                   </span>
                 </div>
                 <span className="text-2xl font-black text-emerald-800">
@@ -923,10 +920,7 @@ export default function SinkingFundsSection({
               </div>
               <button
                 onClick={() => setAllocateModalFund(null)}
-                className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
-              >
-                ✕
-              </button>
+                className="text-gray-400 hover:text-gray-600 text-2xl font-bold p-1">✕</button>
             </div>
             <form
               action={async (formData) => {
@@ -1000,10 +994,7 @@ export default function SinkingFundsSection({
               </div>
               <button
                 onClick={() => setExpenseModalFund(null)}
-                className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
-              >
-                ✕
-              </button>
+                className="text-gray-400 hover:text-gray-600 text-2xl font-bold p-1">✕</button>
             </div>
             <form
               action={async (formData) => {
@@ -1077,10 +1068,7 @@ export default function SinkingFundsSection({
               </div>
               <button
                 onClick={() => setEditModalFund(null)}
-                className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
-              >
-                ✕
-              </button>
+                className="text-gray-400 hover:text-gray-600 text-2xl font-bold p-1">✕</button>
             </div>
             <div className="p-6 space-y-4">
               <form

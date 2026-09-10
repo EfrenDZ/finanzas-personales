@@ -54,7 +54,7 @@ export default function CreditCardsSection({
       {/* Encabezado y Resumen Global */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
         <div>
-          <h2 className="text-xl font-bold text-slate-800">💳 Tarjetas de Crédito y Meses Sin Intereses</h2>
+          <h2 className="text-xl font-bold text-slate-800"> Tarjetas de Crédito y Meses Sin Intereses</h2>
           <p className="text-xs text-slate-500">
             Control de compras a plazos y pagos requeridos del mes.
           </p>
@@ -153,7 +153,7 @@ export default function CreditCardsSection({
               <div className="p-5 space-y-4 flex-1">
                 {activePurchases.length === 0 ? (
                   <div className="text-center py-6 text-slate-400 text-xs">
-                    No tienes compras pendientes en esta tarjeta. ¡Estás al día! 🎉
+                    No tienes compras pendientes en esta tarjeta. ¡Estás al día! 
                   </div>
                 ) : (
                   activePurchases.map((purchase) => {
@@ -254,8 +254,8 @@ export default function CreditCardsSection({
                               {loadingPurchaseId === purchase.id
                                 ? "Procesando..."
                                 : isMsi
-                                ? "✓ Abonar Mes"
-                                : "✓ Liquidar"}
+                                ? " Abonar Mes"
+                                : " Liquidar"}
                             </button>
                           </form>
                         </div>
@@ -267,7 +267,7 @@ export default function CreditCardsSection({
                 {/* Si hay compras completadas */}
                 {completedPurchases.length > 0 && (
                   <div className="text-[11px] text-slate-400 pt-1">
-                    ✓ {completedPurchases.length}{" "}
+                     {completedPurchases.length}{" "}
                     {completedPurchases.length === 1 ? "compra ya liquidada" : "compras ya liquidadas"}.
                   </div>
                 )}
@@ -315,7 +315,7 @@ export default function CreditCardsSection({
               onClick={() => setSelectedCardForPurchase(null)}
               className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 p-2 text-xl leading-none"
             >
-              ✕
+              
             </button>
             <h3 className="text-xl font-bold text-slate-900 mb-1">
               Nueva Compra en {selectedCardForPurchase.name}

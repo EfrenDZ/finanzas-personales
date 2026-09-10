@@ -57,7 +57,7 @@ export default function SinkingFundForm({
                 : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
             }`}
           >
-            🔁 Recurrente
+             Recurrente
           </button>
           <button
             type="button"
@@ -68,7 +68,7 @@ export default function SinkingFundForm({
                 : "bg-white border-slate-200 text-slate-600 hover:bg-slate-50"
             }`}
           >
-            🎯 Gasto Único / Imprevisto
+             Gasto Único / Imprevisto
           </button>
         </div>
       </div>
@@ -172,7 +172,7 @@ export default function SinkingFundForm({
       {/* Tarjeta de cálculo matemático inteligente */}
       <div className="p-4 bg-emerald-50/80 border border-emerald-100 rounded-2xl">
         <p className="text-xs font-bold uppercase tracking-wider text-emerald-900 mb-2">
-          💡 Plan de Provisión Automática
+           Plan de Provisión Automática
         </p>
         <div className="grid grid-cols-3 gap-2 text-center">
           <div className="bg-white p-2 rounded-xl shadow-xs border border-emerald-100/60">

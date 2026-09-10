@@ -19,7 +19,7 @@ export default function SavingActions() {
           onClick={() => setModalType("goal")}
           className="bg-amber-600 hover:bg-amber-700 text-white font-bold py-2.5 px-4 rounded-xl shadow-sm transition-all active:scale-95 text-xs sm:text-sm flex items-center gap-1.5"
         >
-          <span>🎯</span> Nueva Meta
+           Nueva Meta
         </button>
       </div>
 
@@ -33,10 +33,7 @@ export default function SavingActions() {
               </h3>
               <button
                 onClick={() => setModalType(null)}
-                className="text-gray-400 hover:text-gray-600 text-2xl font-bold p-1"
-              >
-                ✕
-              </button>
+                className="text-gray-400 hover:text-gray-600 text-2xl font-bold p-1">✕</button>
             </div>
             <SinkingFundForm 
               defaultIsOneOff={modalType === "goal"} 

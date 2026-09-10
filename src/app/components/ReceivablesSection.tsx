@@ -91,7 +91,7 @@ export default function ReceivablesSection({
                       title="Eliminar"
                       className="text-slate-300 hover:text-rose-500 transition-colors text-sm p-1"
                     >
-                      ✕
+                      
                     </button>
                   </form>
                 </div>
@@ -124,7 +124,7 @@ export default function ReceivablesSection({
                   onClick={() => setPaymentModalRec(rec)}
                   className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white font-semibold py-2.5 px-3 rounded-xl text-xs transition-all active:scale-95 shadow-sm"
                 >
-                  ✓ Registrar Abono
+                   Registrar Abono
                 </button>
                 <button
                   onClick={() => setAdjustModalRec(rec)}
@@ -138,7 +138,7 @@ export default function ReceivablesSection({
                   className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 px-3 rounded-xl text-xs transition-all active:scale-95 flex items-center justify-center"
                   title="Editar configuración o adelantar corte"
                 >
-                  ⚙️ Editar
+                  ️ Editar
                 </button>
               </div>
             </div>
@@ -168,7 +168,7 @@ export default function ReceivablesSection({
                 onClick={() => setEditModalRec(null)}
                 className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
               >
-                ✕
+                
               </button>
             </div>
 
@@ -177,7 +177,7 @@ export default function ReceivablesSection({
               {editModalRec.recurringAmount > 0 && (
                 <div className="p-4 bg-indigo-50 border border-indigo-200 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
                   <div>
-                    <p className="text-xs font-bold text-indigo-950 uppercase tracking-wider">⚡ Adelantar Corte Manual</p>
+                    <p className="text-xs font-bold text-indigo-950 uppercase tracking-wider"> Adelantar Corte Manual</p>
                     <p className="text-xs text-indigo-700 mt-0.5">
                       Suma inmediatamente +${editModalRec.recurringAmount.toFixed(2)} al saldo adeudado.
                     </p>
@@ -320,7 +320,7 @@ export default function ReceivablesSection({
                 onClick={() => setPaymentModalRec(null)}
                 className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
               >
-                ✕
+                
               </button>
             </div>
             <form
@@ -405,7 +405,7 @@ export default function ReceivablesSection({
                 onClick={() => setAdjustModalRec(null)}
                 className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
               >
-                ✕
+                
               </button>
             </div>
             <form
