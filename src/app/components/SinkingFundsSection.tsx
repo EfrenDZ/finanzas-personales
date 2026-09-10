@@ -62,7 +62,8 @@ function calculateFundSuggested(fund: SinkingFund, multiplier: number): number {
   // Calculate daily needed amount based on remaining days
   const daily = remaining / daysLeft;
   
-  return Math.ceil(daily * multiplier);
+  // Suggest the rate, but never more than the absolute remaining amount
+  return Math.ceil(Math.min(remaining, daily * multiplier));
 }
 
 export default function SinkingFundsSection({
