@@ -5,6 +5,7 @@ import { prisma } from "@/lib/prisma";
 import { getAccruedReceivables } from "../actions/receivable";
 import AccountActions from "./AccountActions";
 import ReceivablesSection from "../components/ReceivablesSection";
+import WalletsSection from "../components/WalletsSection";
 
 export default async function AccountsPage() {
   const session = await getServerSession(authOptions);
@@ -69,37 +70,9 @@ export default async function AccountsPage() {
         </div>
       </div>
 
-      {/* Grid de Cuentas Físicas */}
-      <section className="mb-12">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-slate-800">Cuentas Físicas y Bancos</h2>
-        </div>
+      {/* Grid de Cuentas Físicas con opción de Ajuste */}
+      <WalletsSection wallets={wallets} />
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {wallets.map((wallet) => (
-            <div
-              key={wallet.id}
-              className="bg-white p-6 rounded-2xl shadow-sm border border-gray-200 hover:border-slate-300 transition-colors"
-            >
-              <h3 className="text-gray-400 text-xs font-bold uppercase tracking-wider mb-2">
-                {wallet.name}
-              </h3>
-              <p className="text-2xl sm:text-3xl font-bold text-slate-800">
-                ${wallet.balance.toFixed(2)}
-              </p>
-            </div>
-          ))}
-
-          {wallets.length === 0 && (
-            <div className="col-span-full p-10 text-center text-gray-500 bg-white border-2 border-dashed border-gray-200 rounded-2xl">
-              <p className="text-base font-medium text-slate-700">No tienes cuentas todavía.</p>
-              <p className="text-xs text-slate-400 mt-1">
-                Usa el botón &quot;+ Nueva Cuenta&quot; para registrar tu efectivo o bancos.
-              </p>
-            </div>
-          )}
-        </div>
-      </section>
 
       {/* Cuentas por Cobrar */}
       <ReceivablesSection receivables={receivables} wallets={wallets} />
