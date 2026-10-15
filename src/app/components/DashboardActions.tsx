@@ -95,8 +95,8 @@ export default function DashboardActions({
           <div className="w-full max-w-lg bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden animate-in fade-in">
             <div className="flex justify-between items-center p-6 border-b border-gray-100">
               <h3 className="text-xl font-bold text-slate-900">Registrar Movimiento</h3>
-              <button onClick={() => setShowTransactionModal(false)} className="text-gray-400 hover:text-gray-600 text-2xl font-bold">
-                
+              <button onClick={() => setShowTransactionModal(false)} className="text-gray-400 hover:text-gray-600 text-2xl font-bold leading-none p-1">
+                ✕
               </button>
             </div>
             <div className="p-6">
@@ -112,8 +112,8 @@ export default function DashboardActions({
           <div className="w-full max-w-lg bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden animate-in fade-in">
             <div className="flex justify-between items-center p-6 border-b border-gray-100">
               <h3 className="text-xl font-bold text-slate-900">Agregar Cuenta</h3>
-              <button onClick={() => setShowWalletModal(false)} className="text-gray-400 hover:text-gray-600 text-2xl font-bold">
-                
+              <button onClick={() => setShowWalletModal(false)} className="text-gray-400 hover:text-gray-600 text-2xl font-bold leading-none p-1">
+                ✕
               </button>
             </div>
             <div className="p-6">
@@ -129,8 +129,8 @@ export default function DashboardActions({
           <div className="w-full max-w-lg bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto animate-in fade-in">
             <div className="flex justify-between items-center p-6 border-b border-gray-100 sticky top-0 bg-white z-10">
               <h3 className="text-xl font-bold text-slate-900">Nueva Cuenta por Cobrar</h3>
-              <button onClick={() => setShowReceivableModal(false)} className="text-gray-400 hover:text-gray-600 text-2xl font-bold">
-                
+              <button onClick={() => setShowReceivableModal(false)} className="text-gray-400 hover:text-gray-600 text-2xl font-bold leading-none p-1">
+                ✕
               </button>
             </div>
             <div className="p-6">
@@ -146,8 +146,8 @@ export default function DashboardActions({
           <div className="w-full max-w-lg bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto animate-in fade-in">
             <div className="flex justify-between items-center p-6 border-b border-gray-100 sticky top-0 bg-white z-10">
               <h3 className="text-xl font-bold text-slate-900">Nuevo Apartado / Fondo</h3>
-              <button onClick={() => setShowFundModal(false)} className="text-gray-400 hover:text-gray-600 text-2xl font-bold">
-                
+              <button onClick={() => setShowFundModal(false)} className="text-gray-400 hover:text-gray-600 text-2xl font-bold leading-none p-1">
+                ✕
               </button>
             </div>
             <div className="p-6">
@@ -163,8 +163,8 @@ export default function DashboardActions({
           <div className="w-full max-w-lg bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto animate-in fade-in">
             <div className="flex justify-between items-center p-6 border-b border-gray-100 sticky top-0 bg-white z-10">
               <h3 className="text-xl font-bold text-slate-900">Nuevo Tope de Gasto</h3>
-              <button onClick={() => setShowBudgetModal(false)} className="text-gray-400 hover:text-gray-600 text-2xl font-bold">
-                
+              <button onClick={() => setShowBudgetModal(false)} className="text-gray-400 hover:text-gray-600 text-2xl font-bold leading-none p-1">
+                ✕
               </button>
             </div>
             <div className="p-6">
@@ -180,8 +180,8 @@ export default function DashboardActions({
           <div className="w-full max-w-lg bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto animate-in fade-in">
             <div className="flex justify-between items-center p-6 border-b border-gray-100 sticky top-0 bg-white z-10">
               <h3 className="text-xl font-bold text-slate-900">Nueva Tarjeta o Deuda</h3>
-              <button onClick={() => setShowCreditCardModal(false)} className="text-gray-400 hover:text-gray-600 text-2xl font-bold">
-                
+              <button onClick={() => setShowCreditCardModal(false)} className="text-gray-400 hover:text-gray-600 text-2xl font-bold leading-none p-1">
+                ✕
               </button>
             </div>
             <div className="p-6">
@@ -197,8 +197,8 @@ export default function DashboardActions({
           <div className="w-full max-w-lg bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto animate-in fade-in">
             <div className="flex justify-between items-center p-6 border-b border-gray-100 sticky top-0 bg-white z-10">
               <h3 className="text-xl font-bold text-slate-900">Nueva Compra a Crédito / MSI</h3>
-              <button onClick={() => setShowCreditPurchaseModal(false)} className="text-gray-400 hover:text-gray-600 text-2xl font-bold">
-                
+              <button onClick={() => setShowCreditPurchaseModal(false)} className="text-gray-400 hover:text-gray-600 text-2xl font-bold leading-none p-1">
+                ✕
               </button>
             </div>
             <div className="p-6">

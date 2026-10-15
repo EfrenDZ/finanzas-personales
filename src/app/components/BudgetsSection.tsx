@@ -195,9 +195,9 @@ export default function BudgetsSection({
               </div>
               <button
                 onClick={() => setExpenseBudget(null)}
-                className="text-gray-400 hover:text-gray-600 text-2xl font-bold p-1 cursor-pointer"
+                className="text-gray-400 hover:text-gray-600 text-2xl font-bold p-1 cursor-pointer leading-none"
               >
-                
+                ✕
               </button>
             </div>
 
@@ -228,9 +228,9 @@ export default function BudgetsSection({
               </div>
               <button
                 onClick={() => setEditBudget(null)}
-                className="text-gray-400 hover:text-gray-600 text-2xl font-bold p-1 cursor-pointer"
+                className="text-gray-400 hover:text-gray-600 text-2xl font-bold p-1 cursor-pointer leading-none"
               >
-                
+                ✕
               </button>
             </div>
 

@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import Link from "next/link";
 import HomeActions from "./components/HomeActions";
+import RecentTransactionsSection from "./components/RecentTransactionsSection";
 import { getAccruedReceivables } from "./actions/receivable";
 
 export default async function Home() {
@@ -42,7 +43,7 @@ export default async function Home() {
     where: { wallet: { userId } },
     orderBy: { date: "desc" },
     take: 8,
-    include: { wallet: true },
+    include: { wallet: true, category: true },
   });
 
   const walletMap = new Map(wallets.map((w) => [w.id, w.name]));
@@ -231,68 +232,13 @@ export default async function Home() {
         </Link>
       </div>
 
-      {/* Historial Reciente de Movimientos */}
-      <section className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold text-slate-800">Últimos Movimientos</h2>
-          {recentTransactions.length > 0 && (
-            <span className="text-xs font-medium text-slate-500">
-              Mostrando los {recentTransactions.length} más recientes
-            </span>
-          )}
-        </div>
-
-        {recentTransactions.length > 0 ? (
-          <div className="bg-white rounded-2xl shadow-sm border border-gray-200 overflow-hidden">
-            <ul className="divide-y divide-gray-100">
-              {recentTransactions.map((tx) => {
-                const isTransfer = tx.type === "TRANSFER";
-                const isIncome = tx.type === "INCOME";
-                const destName = tx.destinationWalletId
-                  ? walletMap.get(tx.destinationWalletId) || "Otra cuenta"
-                  : "";
-
-                return (
-                  <li
-                    key={tx.id}
-                    className="p-4 sm:p-5 flex justify-between items-center hover:bg-gray-50 transition-colors"
-                  >
-                    <div>
-                      <p className="font-bold text-slate-800 text-sm sm:text-base">
-                        {tx.description || "Movimiento"}
-                      </p>
-                      <p className="text-xs text-gray-400 mt-0.5">
-                        {isTransfer
-                          ? `${tx.wallet.name} → ${destName}`
-                          : tx.wallet.name}{" "}
-                        • {new Date(tx.date).toLocaleDateString("es-MX")}
-                      </p>
-                    </div>
-                    <div
-                      className={`font-black text-base sm:text-lg ${
-                        isTransfer
-                          ? "text-blue-600"
-                          : isIncome
-                          ? "text-emerald-600"
-                          : "text-slate-900"
-                      }`}
-                    >
-                      {isTransfer ? "⇄ " : isIncome ? "+" : "-"}${tx.amount.toFixed(2)}
-                    </div>
-                  </li>
-                );
-              })}
-            </ul>
-          </div>
-        ) : (
-          <div className="p-10 text-center text-gray-500 bg-white border-2 border-dashed border-gray-200 rounded-2xl">
-            <p className="text-base font-medium text-slate-700">No hay movimientos registrados.</p>
-            <p className="text-xs text-slate-400 mt-1">
-              Usa el botón &quot;+ Registrar Movimiento&quot; para empezar a registrar tus gastos e ingresos.
-            </p>
-          </div>
-        )}
-      </section>
+      {/* Historial Reciente de Movimientos con Edición */}
+      <RecentTransactionsSection
+        transactions={recentTransactions}
+        wallets={wallets}
+        categories={categories}
+        walletMap={Object.fromEntries(walletMap)}
+      />
     </div>
   );
 }

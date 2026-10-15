@@ -166,9 +166,9 @@ export default function ReceivablesSection({
               </div>
               <button
                 onClick={() => setEditModalRec(null)}
-                className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
+                className="text-gray-400 hover:text-gray-600 text-2xl font-bold leading-none p-1"
               >
-                
+                ✕
               </button>
             </div>
 
@@ -318,9 +318,9 @@ export default function ReceivablesSection({
               </div>
               <button
                 onClick={() => setPaymentModalRec(null)}
-                className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
+                className="text-gray-400 hover:text-gray-600 text-2xl font-bold leading-none p-1"
               >
-                
+                ✕
               </button>
             </div>
             <form
@@ -403,9 +403,9 @@ export default function ReceivablesSection({
               </div>
               <button
                 onClick={() => setAdjustModalRec(null)}
-                className="text-gray-400 hover:text-gray-600 text-2xl font-bold"
+                className="text-gray-400 hover:text-gray-600 text-2xl font-bold leading-none p-1"
               >
-                
+                ✕
               </button>
             </div>
             <form

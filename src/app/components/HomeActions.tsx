@@ -45,9 +45,9 @@ export default function HomeActions({
               <h3 className="text-xl font-bold text-slate-900">Registrar Movimiento</h3>
               <button
                 onClick={() => setShowTransactionModal(false)}
-                className="text-gray-400 hover:text-gray-600 text-2xl font-bold p-1"
+                className="text-gray-400 hover:text-gray-600 text-2xl font-bold p-1 leading-none"
               >
-                
+                ✕
               </button>
             </div>
             <TransactionForm
@@ -67,9 +67,9 @@ export default function HomeActions({
               <h3 className="text-xl font-bold text-slate-900">Nueva Cuenta</h3>
               <button
                 onClick={() => setShowWalletModal(false)}
-                className="text-gray-400 hover:text-gray-600 text-2xl font-bold p-1"
+                className="text-gray-400 hover:text-gray-600 text-2xl font-bold p-1 leading-none"
               >
-                
+                ✕
               </button>
             </div>
             <WalletForm onSuccess={() => setShowWalletModal(false)} />
