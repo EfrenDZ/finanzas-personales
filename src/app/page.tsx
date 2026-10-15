@@ -86,9 +86,7 @@ export default async function Home() {
         <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
           Hola, {userName} 👋
         </h1>
-        <p className="text-sm text-slate-500 font-medium mt-0.5">
-          Aquí tienes un resumen limpio de tu situación financiera actual.
-        </p>
+        
       </div>
 
       {/* Tarjetas de Resumen Financiero Principal */}
