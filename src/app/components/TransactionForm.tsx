@@ -10,13 +10,15 @@ export default function TransactionForm({
   wallets, 
   categories = [], 
   onSuccess,
+  onOpenWalletModal,
   defaultType = "EXPENSE",
   defaultCategoryId = "",
   lockCategory = false,
 }: { 
   wallets: Wallet[]; 
   categories?: Category[]; 
-  onSuccess?: () => void; 
+  onSuccess?: () => void;
+  onOpenWalletModal?: () => void;
   defaultType?: "EXPENSE" | "INCOME" | "TRANSFER";
   defaultCategoryId?: string;
   lockCategory?: boolean;
@@ -29,7 +31,41 @@ export default function TransactionForm({
   const [isNewCategory, setIsNewCategory] = useState(false);
 
   if (wallets.length === 0) {
-    return <p className="text-red-500 font-medium text-center">Debes crear una cuenta primero.</p>;
+    return (
+      <div className="text-center py-6 space-y-4">
+        <div className="w-12 h-12 mx-auto rounded-full bg-amber-50 text-amber-600 flex items-center justify-center">
+          <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z" />
+          </svg>
+        </div>
+        <div>
+          <p className="font-bold text-slate-800 text-base">Aún no tienes cuentas creadas</p>
+          <p className="text-xs text-slate-500 mt-1 max-w-xs mx-auto">
+            Para registrar gastos, ingresos o transferencias, primero necesitas registrar al menos una cuenta (ej. Efectivo, BBVA, etc.).
+          </p>
+        </div>
+        <div className="pt-2 flex flex-col sm:flex-row gap-2 justify-center">
+          {onOpenWalletModal && (
+            <button
+              type="button"
+              onClick={onOpenWalletModal}
+              className="bg-blue-600 hover:bg-blue-700 text-white font-bold py-2.5 px-5 rounded-xl text-sm transition-all shadow-sm cursor-pointer"
+            >
+              + Crear Cuenta Ahora
+            </button>
+          )}
+          {onSuccess && (
+            <button
+              type="button"
+              onClick={onSuccess}
+              className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 px-4 rounded-xl text-sm transition-colors cursor-pointer"
+            >
+              Cerrar
+            </button>
+          )}
+        </div>
+      </div>
+    );
   }
 
   const filteredCategories = categories.filter(c => c.type === type);

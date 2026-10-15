@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import TransactionForm from "./TransactionForm";
 import WalletForm from "./WalletForm";
 
@@ -16,6 +16,20 @@ export default function HomeActions({
 }) {
   const [showTransactionModal, setShowTransactionModal] = useState(false);
   const [showWalletModal, setShowWalletModal] = useState(false);
+
+  // Cerrar con tecla Escape
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setShowTransactionModal(false);
+        setShowWalletModal(false);
+      }
+    };
+    if (showTransactionModal || showWalletModal) {
+      window.addEventListener("keydown", handleKeyDown);
+      return () => window.removeEventListener("keydown", handleKeyDown);
+    }
+  }, [showTransactionModal, showWalletModal]);
 
   return (
     <>
@@ -39,21 +53,35 @@ export default function HomeActions({
 
       {/* Modal Movimiento */}
       {showTransactionModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-lg bg-white rounded-3xl p-6 sm:p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto animate-in fade-in zoom-in duration-200">
+        <div
+          onClick={() => setShowTransactionModal(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-in fade-in duration-150"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-lg bg-white rounded-3xl p-6 sm:p-8 shadow-2xl relative max-h-[90vh] overflow-y-auto animate-in zoom-in-95 duration-200"
+          >
             <div className="flex justify-between items-center mb-5">
               <h3 className="text-xl font-bold text-slate-900">Registrar Movimiento</h3>
               <button
+                type="button"
                 onClick={() => setShowTransactionModal(false)}
-                className="text-gray-400 hover:text-gray-600 text-2xl font-bold p-1 leading-none"
+                className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
+                aria-label="Cerrar modal"
               >
-                ✕
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
             <TransactionForm
               wallets={wallets}
               categories={categories}
               onSuccess={() => setShowTransactionModal(false)}
+              onOpenWalletModal={() => {
+                setShowTransactionModal(false);
+                setShowWalletModal(true);
+              }}
             />
           </div>
         </div>
@@ -61,15 +89,25 @@ export default function HomeActions({
 
       {/* Modal Cuenta */}
       {showWalletModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm">
-          <div className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 shadow-2xl relative animate-in fade-in zoom-in duration-200">
+        <div
+          onClick={() => setShowWalletModal(false)}
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4 backdrop-blur-sm animate-in fade-in duration-150"
+        >
+          <div
+            onClick={(e) => e.stopPropagation()}
+            className="w-full max-w-md bg-white rounded-3xl p-6 sm:p-8 shadow-2xl relative animate-in zoom-in-95 duration-200"
+          >
             <div className="flex justify-between items-center mb-5">
               <h3 className="text-xl font-bold text-slate-900">Nueva Cuenta</h3>
               <button
+                type="button"
                 onClick={() => setShowWalletModal(false)}
-                className="text-gray-400 hover:text-gray-600 text-2xl font-bold p-1 leading-none"
+                className="p-2 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-xl transition-all cursor-pointer"
+                aria-label="Cerrar modal"
               >
-                ✕
+                <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
               </button>
             </div>
             <WalletForm onSuccess={() => setShowWalletModal(false)} />
