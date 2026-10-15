@@ -12,21 +12,28 @@ export default function SinkingFundForm({
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [loading, setLoading] = useState(false);
-  const [targetAmount, setTargetAmount] = useState<number>(1000);
-  const [frequencyDays, setFrequencyDays] = useState<number>(34);
+  const [targetAmount, setTargetAmount] = useState<string>("");
+  const [frequencyDays, setFrequencyDays] = useState<string>("");
   const [nextDueDate, setNextDueDate] = useState<string>("");
 
   const [isOneOff, setIsOneOff] = useState(defaultIsOneOff);
 
   // Actualizar la fecha sugerida automáticamente según los días
   useEffect(() => {
-    const target = new Date(Date.now() + (frequencyDays > 0 ? frequencyDays : 7) * 86400000);
-    setNextDueDate(target.toISOString().split("T")[0]);
+    const days = parseInt(frequencyDays, 10);
+    if (days > 0) {
+      const target = new Date(Date.now() + days * 86400000);
+      setNextDueDate(target.toISOString().split("T")[0]);
+    } else {
+      setNextDueDate("");
+    }
   }, [frequencyDays]);
 
-  const dailyCost = frequencyDays > 0 ? Math.ceil(targetAmount / frequencyDays) : 0;
-  const weeklyCost = frequencyDays > 0 ? Math.ceil((targetAmount / frequencyDays) * 7) : 0;
-  const monthlyCost = frequencyDays > 0 ? Math.ceil((targetAmount / frequencyDays) * 30) : 0;
+  const numTargetAmount = parseFloat(targetAmount) || 0;
+  const numFrequencyDays = parseInt(frequencyDays, 10) || 0;
+  const dailyCost = numFrequencyDays > 0 && numTargetAmount > 0 ? Math.ceil(numTargetAmount / numFrequencyDays) : 0;
+  const weeklyCost = numFrequencyDays > 0 && numTargetAmount > 0 ? Math.ceil((numTargetAmount / numFrequencyDays) * 7) : 0;
+  const monthlyCost = numFrequencyDays > 0 && numTargetAmount > 0 ? Math.ceil((numTargetAmount / numFrequencyDays) * 30) : 0;
 
   return (
     <form
@@ -81,7 +88,7 @@ export default function SinkingFundForm({
           type="text"
           name="name"
           required
-          placeholder={isOneOff ? "Ej. Reparación carro, Regalo, Boleto concierto..." : "Ej. Croquetas perro, Gasolina, Seguro..."}
+          placeholder={isOneOff ? "Ej. Reparación de algo, Regalo.." : "Ej. Croquetas, Gasolina..."}
           className="w-full px-4 py-3 border border-gray-300 rounded-xl text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
         />
       </div>
@@ -120,11 +127,11 @@ export default function SinkingFundForm({
             name="targetAmount"
             step="0.01"
             min="0.01"
-            value={targetAmount || ""}
-            onChange={(e) => setTargetAmount(parseFloat(e.target.value) || 0)}
+            value={targetAmount}
+            onChange={(e) => setTargetAmount(e.target.value)}
             required
-            placeholder="Ej. 1000"
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
+            placeholder="0.00"
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
           />
         </div>
 
@@ -136,10 +143,11 @@ export default function SinkingFundForm({
             type="number"
             name="frequencyDays"
             min="1"
-            value={frequencyDays || ""}
-            onChange={(e) => setFrequencyDays(parseInt(e.target.value, 10) || 1)}
+            value={frequencyDays}
+            onChange={(e) => setFrequencyDays(e.target.value)}
             required
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
+            placeholder="Ej. 30"
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
           />
         </div>
       </div>
@@ -157,9 +165,9 @@ export default function SinkingFundForm({
           <button
             key={p.days}
             type="button"
-            onClick={() => setFrequencyDays(p.days)}
+            onClick={() => setFrequencyDays(p.days.toString())}
             className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${
-              frequencyDays === p.days
+              frequencyDays === p.days.toString()
                 ? "bg-emerald-50 border-emerald-500 text-emerald-700"
                 : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
             }`}
@@ -214,8 +222,8 @@ export default function SinkingFundForm({
             name="initialAccumulated"
             step="0.01"
             min="0"
-            defaultValue="0"
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
+            placeholder="0.00"
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
           />
         </div>
       </div>

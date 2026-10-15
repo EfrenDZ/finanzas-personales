@@ -17,7 +17,7 @@ export default function BudgetForm({
   const [errorMessage, setErrorMessage] = useState("");
   const [isCreatingNewCategory, setIsCreatingNewCategory] = useState(categories.length === 0);
   const [selectedCategoryId, setSelectedCategoryId] = useState(categories[0]?.id || "");
-  const [frequencyDays, setFrequencyDays] = useState<number>(7);
+  const [frequencyDays, setFrequencyDays] = useState<string>("");
   const [limitAmount, setLimitAmount] = useState<string>("");
 
   const expenseCategories = categories.filter(c => c.type === "EXPENSE");
@@ -126,9 +126,10 @@ export default function BudgetForm({
           name="frequencyDays"
           min="1"
           value={frequencyDays}
-          onChange={(e) => setFrequencyDays(parseInt(e.target.value, 10) || 1)}
+          onChange={(e) => setFrequencyDays(e.target.value)}
           required
-          className="w-full px-4 py-3 border border-gray-300 rounded-xl text-slate-900 outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+          placeholder="Ej. 7"
+          className="w-full px-4 py-3 border border-gray-300 rounded-xl text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500 font-medium"
         />
 
         {/* Botones de sugerencias rápidas de frecuencia */}
@@ -141,9 +142,9 @@ export default function BudgetForm({
             <button
               key={p.days}
               type="button"
-              onClick={() => setFrequencyDays(p.days)}
+              onClick={() => setFrequencyDays(p.days.toString())}
               className={`px-2.5 py-1 rounded-lg text-xs font-semibold border transition-all ${
-                frequencyDays === p.days
+                frequencyDays === p.days.toString()
                   ? "bg-blue-50 border-blue-500 text-blue-700"
                   : "bg-slate-50 border-slate-200 text-slate-600 hover:bg-slate-100"
               }`}
