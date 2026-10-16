@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { parseDateInput } from "@/lib/date";
 
 // Crear nuevo Fondo de Reserva / Apartado
 export async function createSinkingFund(formData: FormData) {
@@ -25,7 +26,7 @@ export async function createSinkingFund(formData: FormData) {
 
   let nextDueDate: Date;
   if (nextDueDateStr) {
-    nextDueDate = new Date(`${nextDueDateStr}T12:00:00`);
+    nextDueDate = parseDateInput(nextDueDateStr);
   } else {
     nextDueDate = new Date(Date.now() + frequencyDays * 86400000);
   }
@@ -199,7 +200,7 @@ export async function updateSinkingFund(formData: FormData) {
   }
 
   const nextDueDate = nextDueDateStr 
-    ? new Date(`${nextDueDateStr}T12:00:00`)
+    ? parseDateInput(nextDueDateStr)
     : new Date();
 
   await prisma.sinkingFund.update({

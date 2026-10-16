@@ -98,15 +98,16 @@ export async function createReceivable(formData: FormData) {
 
   // Determinar la fecha exacta del próximo corte
   const nextAccrualDate = firstAccrualDateStr 
-    ? new Date(`${firstAccrualDateStr}T12:00:00`)
+    ? parseDateInput(firstAccrualDateStr)
     : new Date();
 
-  // Derivar automáticamente el día ancla a partir de la fecha seleccionada
+  // Derivar automáticamente el día ancla a partir de la fecha seleccionada en Mazatlán
+  const parts = getDatePartsInTimezone(nextAccrualDate);
   let anchorDay: number | null = null;
   if (frequencyType === "WEEKLY") {
-    anchorDay = nextAccrualDate.getDay();
+    anchorDay = parts.dayOfWeek;
   } else if (frequencyType === "MONTHLY") {
-    anchorDay = nextAccrualDate.getDate();
+    anchorDay = parts.day;
   }
 
   await prisma.receivable.create({
@@ -172,14 +173,15 @@ export async function updateReceivable(formData: FormData) {
   }
 
   const nextAccrualDate = nextAccrualDateStr
-    ? new Date(`${nextAccrualDateStr}T12:00:00`)
+    ? parseDateInput(nextAccrualDateStr)
     : new Date();
 
+  const parts = getDatePartsInTimezone(nextAccrualDate);
   let anchorDay: number | null = null;
   if (frequencyType === "WEEKLY") {
-    anchorDay = nextAccrualDate.getDay();
+    anchorDay = parts.dayOfWeek;
   } else if (frequencyType === "MONTHLY") {
-    anchorDay = nextAccrualDate.getDate();
+    anchorDay = parts.day;
   }
 
   await prisma.receivable.update({

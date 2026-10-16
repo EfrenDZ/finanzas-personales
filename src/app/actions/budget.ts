@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { parseDateInput } from "@/lib/date";
 
 export async function createBudget(formData: FormData) {
   const session = await getServerSession(authOptions);
@@ -57,7 +58,7 @@ export async function createBudget(formData: FormData) {
     throw new Error("Ya existe un tope de gasto para esta categoría. Puedes editarlo o eliminarlo.");
   }
 
-  const startDate = startDateStr ? new Date(`${startDateStr}T12:00:00`) : new Date();
+  const startDate = startDateStr ? parseDateInput(startDateStr) : new Date();
 
   await prisma.budget.create({
     data: {
@@ -99,7 +100,7 @@ export async function updateBudget(formData: FormData) {
   if (resetCycle) {
     updateData.startDate = new Date();
   } else if (startDateStr) {
-    updateData.startDate = new Date(`${startDateStr}T12:00:00`);
+    updateData.startDate = parseDateInput(startDateStr);
   }
 
   await prisma.budget.update({

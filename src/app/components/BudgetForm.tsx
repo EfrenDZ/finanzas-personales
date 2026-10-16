@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { createBudget } from "../actions/budget";
+import { formatDateToInput } from "@/lib/date";
 
 type Category = { id: string; name: string; type: string };
 
@@ -163,7 +164,7 @@ export default function BudgetForm({
         <input
           type="date"
           name="startDate"
-          defaultValue={new Date().toISOString().split("T")[0]}
+          defaultValue={formatDateToInput()}
           className="w-full px-4 py-3 border border-gray-300 rounded-xl text-slate-900 bg-white outline-none focus:ring-2 focus:ring-blue-500 font-medium"
         />
         <p className="text-[11px] text-slate-400 mt-1">

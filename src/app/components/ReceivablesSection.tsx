@@ -8,6 +8,7 @@ import {
   updateReceivable,
   deleteReceivable 
 } from "../actions/receivable";
+import { formatDateToInput, formatDateDisplay } from "@/lib/date";
 
 type Wallet = { id: string; name: string; balance: number };
 type Receivable = {
@@ -112,7 +113,7 @@ export default function ReceivablesSection({
                       </span>
                     </div>
                     <p className="text-indigo-600 mt-1">
-                      Próximo aumento: <span className="font-medium text-indigo-900">{nextAccrual.toLocaleDateString()}</span> (en ~{daysLeft} días)
+                      Próximo aumento: <span className="font-medium text-indigo-900">{formatDateDisplay(rec.nextAccrualDate)}</span> (en ~{daysLeft} días)
                     </p>
                   </div>
                 )}
@@ -275,7 +276,7 @@ export default function ReceivablesSection({
                   <input
                     type="date"
                     name="nextAccrualDate"
-                    defaultValue={new Date(editModalRec.nextAccrualDate).toISOString().split("T")[0]}
+                    defaultValue={formatDateToInput(editModalRec.nextAccrualDate)}
                     required
                     className="w-full px-4 py-3 border border-gray-300 rounded-xl text-slate-900 bg-white outline-none focus:ring-2 focus:ring-indigo-500 font-medium"
                   />

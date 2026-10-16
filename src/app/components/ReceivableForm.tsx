@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { createReceivable } from "../actions/receivable";
+import { formatDateToInput, parseDateInput, getDatePartsInTimezone } from "@/lib/date";
 
 const DAY_NAMES = ["Domingo", "Lunes", "Martes", "Miércoles", "Jueves", "Viernes", "Sábado"];
 
@@ -14,13 +15,13 @@ export default function ReceivableForm({ onSuccess }: { onSuccess?: () => void }
   
   // Por defecto la fecha de hoy
   const [firstAccrualDate, setFirstAccrualDate] = useState<string>(
-    new Date().toISOString().split("T")[0]
+    formatDateToInput()
   );
 
   // Calcular texto explicativo a partir de la fecha elegida
-  const selectedDateObj = firstAccrualDate ? new Date(`${firstAccrualDate}T12:00:00`) : new Date();
-  const dayOfWeekName = DAY_NAMES[selectedDateObj.getDay()];
-  const dayOfMonth = selectedDateObj.getDate();
+  const parts = getDatePartsInTimezone(parseDateInput(firstAccrualDate));
+  const dayOfWeekName = DAY_NAMES[parts.dayOfWeek];
+  const dayOfMonth = parts.day;
 
   let explanationText = "";
   if (frequencyType === "WEEKLY") {

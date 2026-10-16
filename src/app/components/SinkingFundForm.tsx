@@ -2,6 +2,7 @@
 
 import { useRef, useState, useEffect } from "react";
 import { createSinkingFund } from "../actions/sinkingFund";
+import { formatDateToInput } from "@/lib/date";
 
 export default function SinkingFundForm({ 
   onSuccess, 
@@ -23,7 +24,7 @@ export default function SinkingFundForm({
     const days = parseInt(frequencyDays, 10);
     if (days > 0) {
       const target = new Date(Date.now() + days * 86400000);
-      setNextDueDate(target.toISOString().split("T")[0]);
+      setNextDueDate(formatDateToInput(target));
     } else {
       setNextDueDate("");
     }

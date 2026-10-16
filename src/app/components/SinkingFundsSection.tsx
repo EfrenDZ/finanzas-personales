@@ -9,6 +9,7 @@ import {
   updateSinkingFund, 
   deleteSinkingFund 
 } from "../actions/sinkingFund";
+import { formatDateToInput, formatDateDisplay } from "@/lib/date";
 
 type Wallet = { id: string; name: string; balance: number };
 type SinkingFund = {
@@ -46,16 +47,12 @@ function getCycleBadgeText(days: number): string {
   return `Cada ${days} días`;
 }
 
-// Formateo de fecha determinista para evitar discrepancias de hidratación SSR
+// Formateo de fecha determinista en la zona horaria de Mazatlán
 function formatDate(d: Date | string): string {
-  const date = new Date(d);
-  const day = String(date.getUTCDate()).padStart(2, "0");
-  const month = String(date.getUTCMonth() + 1).padStart(2, "0");
-  const year = date.getUTCFullYear();
-  return `${day}/${month}/${year}`;
+  return formatDateDisplay(d);
 }
 
-function calculateFundSuggested(fund: SinkingFund, multiplier: number): number {
+function calculateFundQuota(fund: SinkingFund, multiplier: number): number {
   if (!fund.isOneOff) {
     // Para apartados recurrentes: flujo continuo según periodicidad (gasto por día * multiplicador del periodo)
     const dailyRate = fund.targetAmount / Math.max(1, fund.frequencyDays);
@@ -70,6 +67,16 @@ function calculateFundSuggested(fund: SinkingFund, multiplier: number): number {
   
   return Math.ceil(Math.min(remaining, daily * multiplier));
 }
+
+function calculateFundRemainingForPeriod(fund: SinkingFund, multiplier: number): number {
+  const quota = calculateFundQuota(fund, multiplier);
+  if (!fund.isOneOff) {
+    return Math.max(0, quota - fund.accumulatedAmount);
+  }
+  return quota;
+}
+
+const calculateFundSuggested = calculateFundQuota;
 
 export default function SinkingFundsSection({
   sinkingFunds,
@@ -199,11 +206,7 @@ export default function SinkingFundsSection({
     let sum = 0;
     sinkingFunds.forEach((f) => {
       if (generalSelectedIds.has(f.id)) {
-        const remainingNeeded = Math.max(0, f.targetAmount - f.accumulatedAmount);
-        const suggested = calculateFundSuggested(f, multiplier);
-        const val = f.isOneOff
-          ? Math.min(suggested, remainingNeeded > 0 ? remainingNeeded : suggested)
-          : suggested;
+        const val = calculateFundRemainingForPeriod(f, multiplier);
         map[f.id] = val;
         sum += val;
       } else {
@@ -310,8 +313,10 @@ export default function SinkingFundsSection({
     const nextDue = new Date(fund.nextDueDate);
     const daysLeft = Math.max(0, Math.ceil((nextDue.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
     
-    // Cuota calculada y redondeada para arriba con Math.ceil
-    const fundSuggested = calculateFundSuggested(fund, multiplier);
+    // Cuota del periodo y monto restante por fondear
+    const quota = calculateFundQuota(fund, multiplier);
+    const remainingToFund = calculateFundRemainingForPeriod(fund, multiplier);
+    const isCoveredForPeriod = remainingToFund === 0;
     const progressPercent = Math.min(100, Math.round((fund.accumulatedAmount / fund.targetAmount) * 100));
 
     return (
@@ -358,13 +363,21 @@ export default function SinkingFundsSection({
                 <span className="text-xs font-medium text-slate-400">de ${fund.targetAmount.toFixed(2)}</span>
               </p>
             </div>
-            <div className="text-right">
-              <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100 inline-block">
-                ${fundSuggested} {periodLabel}
+            <div className="text-right flex flex-col items-end">
+              <span className="text-[11px] font-semibold text-slate-400">
+                Cuota: ${quota} {periodLabel}
               </span>
-              {fund.isOneOff && (
-                <p className="text-[10px] text-slate-400 mt-0.5">cuota sugerida</p>
-              )}
+              <div className="mt-1">
+                {isCoveredForPeriod ? (
+                  <span className="text-xs font-bold text-teal-800 bg-teal-50 px-2.5 py-1 rounded-lg border border-teal-200 inline-block">
+                    ✓ Cubierto
+                  </span>
+                ) : (
+                  <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100 inline-block">
+                    Faltan ${remainingToFund}
+                  </span>
+                )}
+              </div>
             </div>
           </div>
 
@@ -980,7 +993,7 @@ export default function SinkingFundsSection({
                     ¿Cuánto dinero deseas apartar hoy? ($)
                   </label>
                   <span className="text-xs font-bold text-emerald-700">
-                    Sugerido: ${calculateFundSuggested(allocateModalFund, multiplier)}
+                    Sugerido: ${calculateFundRemainingForPeriod(allocateModalFund, multiplier) || calculateFundQuota(allocateModalFund, multiplier)}
                   </span>
                 </div>
                 <input
@@ -989,7 +1002,7 @@ export default function SinkingFundsSection({
                   step="0.01"
                   min="0.01"
                   required
-                  defaultValue={calculateFundSuggested(allocateModalFund, multiplier) || 100}
+                  defaultValue={calculateFundRemainingForPeriod(allocateModalFund, multiplier) || calculateFundQuota(allocateModalFund, multiplier) || 100}
                   className="w-full px-4 py-3 border border-gray-300 rounded-xl text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
                 />
                 <p className="text-xs text-slate-400 mt-1">
@@ -1158,7 +1171,7 @@ export default function SinkingFundsSection({
                       type="date"
                       name="nextDueDate"
                       required
-                      defaultValue={new Date(editModalFund.nextDueDate).toISOString().split("T")[0]}
+                      defaultValue={formatDateToInput(editModalFund.nextDueDate)}
                       className="w-full px-4 py-3 border border-gray-300 rounded-xl text-slate-900 bg-white outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
                     />
                   </div>
