@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { parseDateInput } from "@/lib/date";
 
 export async function createTransaction(formData: FormData) {
   const session = await getServerSession(authOptions);
@@ -15,6 +16,8 @@ export async function createTransaction(formData: FormData) {
   const type = formData.get("type") as "INCOME" | "EXPENSE" | "TRANSFER";
   const amount = parseFloat(formData.get("amount") as string);
   const description = formData.get("description") as string;
+  const dateStr = (formData.get("date") as string)?.trim();
+  const txDate = dateStr ? parseDateInput(dateStr) : new Date();
   let categoryId = (formData.get("categoryId") as string)?.trim() || null;
   const newCategoryName = (formData.get("newCategoryName") as string)?.trim();
 
@@ -76,6 +79,7 @@ export async function createTransaction(formData: FormData) {
           type: "TRANSFER",
           amount,
           description: description?.trim() || "Transferencia entre cuentas",
+          date: txDate,
         },
       });
     });
@@ -89,6 +93,7 @@ export async function createTransaction(formData: FormData) {
           type,
           amount,
           description: description?.trim() || (type === "INCOME" ? "Ingreso" : "Gasto"),
+          date: txDate,
         },
       });
 
@@ -158,7 +163,7 @@ export async function updateTransaction(formData: FormData) {
     }
   }
 
-  const txDate = dateStr ? new Date(`${dateStr}T12:00:00Z`) : oldTx.date;
+  const txDate = dateStr ? parseDateInput(dateStr) : oldTx.date;
 
   await prisma.$transaction(async (tx) => {
     // 1. Revertir saldo anterior

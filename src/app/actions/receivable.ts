@@ -4,6 +4,7 @@ import { prisma } from "@/lib/prisma";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
+import { parseDateInput, getDatePartsInTimezone } from "@/lib/date";
 
 // Función auxiliar para calcular la siguiente fecha de corte
 function advanceAccrualDate(

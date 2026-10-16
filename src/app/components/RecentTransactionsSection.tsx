@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { updateTransaction, deleteTransaction } from "../actions/transaction";
+import { formatDateToInput, formatDateDisplay } from "@/lib/date";
 
 type Wallet = { id: string; name: string; balance: number };
 type Category = { id: string; name: string; type: string };
@@ -93,8 +94,8 @@ export default function RecentTransactionsSection({
 
   // Formato YYYY-MM-DD para el input type="date"
   const formattedDate = selectedTx?.date
-    ? new Date(selectedTx.date).toISOString().split("T")[0]
-    : new Date().toISOString().split("T")[0];
+    ? formatDateToInput(selectedTx.date)
+    : formatDateToInput();
 
   return (
     <section className="mb-8">
@@ -137,7 +138,7 @@ export default function RecentTransactionsSection({
                       {isTransfer
                         ? `${tx.wallet.name} → ${destName}`
                         : tx.wallet.name}{" "}
-                      • {new Date(tx.date).toLocaleDateString("es-MX")}
+                      • {formatDateDisplay(tx.date)}
                     </p>
                   </div>
 

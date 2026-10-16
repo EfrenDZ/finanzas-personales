@@ -172,7 +172,7 @@ export async function executeFundExpense(formData: FormData) {
       await tx.sinkingFund.update({
         where: { id: fundId },
         data: {
-          accumulatedAmount: 0,
+          accumulatedAmount: Math.max(0, fund.accumulatedAmount - expenseAmount),
           nextDueDate,
         },
       });

@@ -2,6 +2,7 @@
 
 import { useRef, useState } from "react";
 import { createTransaction } from "../actions/transaction";
+import { formatDateToInput } from "@/lib/date";
 
 type Wallet = { id: string; name: string; balance: number };
 type Category = { id: string; name: string; type: string };
@@ -193,17 +194,29 @@ export default function TransactionForm({
         </div>
       )}
 
-      <div>
-        <label className="block text-sm font-medium text-slate-700 mb-1">Monto ($)</label>
-        <input 
-          type="number" 
-          name="amount" 
-          step="0.01" 
-          min="0.01" 
-          required 
-          placeholder="0.00" 
-          className="w-full px-4 py-3 border border-gray-300 rounded-xl text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500 font-medium" 
-        />
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Monto ($)</label>
+          <input 
+            type="number" 
+            name="amount" 
+            step="0.01" 
+            min="0.01" 
+            required 
+            placeholder="0.00" 
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500 font-medium" 
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium text-slate-700 mb-1">Fecha</label>
+          <input 
+            type="date" 
+            name="date" 
+            defaultValue={formatDateToInput()}
+            required
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl text-slate-900 bg-white outline-none focus:ring-2 focus:ring-blue-500 font-medium" 
+          />
+        </div>
       </div>
 
       {type !== "TRANSFER" && (

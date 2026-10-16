@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { 
   allocateToFund, 
   allocateGeneralToFunds,
@@ -21,6 +21,10 @@ type SinkingFund = {
   isOneOff?: boolean;
   isCompleted?: boolean;
 };
+
+type ProvisionPeriod = "DAILY" | "WEEKLY" | "BIWEEKLY" | "MONTHLY";
+const PROVISION_PERIOD_STORAGE_KEY = "finanzas_sinking_funds_provision_period";
+const VALID_PROVISION_PERIODS: ProvisionPeriod[] = ["DAILY", "WEEKLY", "BIWEEKLY", "MONTHLY"];
 
 // Clasificación de ciclos
 function getCycleCategory(days: number): "WEEKLY" | "BIWEEKLY" | "MONTHLY" | "OTHER" {
@@ -52,17 +56,18 @@ function formatDate(d: Date | string): string {
 }
 
 function calculateFundSuggested(fund: SinkingFund, multiplier: number): number {
+  if (!fund.isOneOff) {
+    // Para apartados recurrentes: flujo continuo según periodicidad (gasto por día * multiplicador del periodo)
+    const dailyRate = fund.targetAmount / Math.max(1, fund.frequencyDays);
+    return Math.ceil(dailyRate * multiplier);
+  }
+
+  // Para metas a futuro (gasto único): no superar lo que falta para completar la meta
   const nextDue = new Date(fund.nextDueDate);
-  // Calculate remaining days (minimum 1 to avoid division by zero)
   const daysLeft = Math.max(1, Math.ceil((nextDue.getTime() - Date.now()) / (1000 * 60 * 60 * 24)));
-  
-  // Calculate remaining amount needed
   const remaining = Math.max(0, fund.targetAmount - fund.accumulatedAmount);
-  
-  // Calculate daily needed amount based on remaining days
   const daily = remaining / daysLeft;
   
-  // Suggest the rate, but never more than the absolute remaining amount
   return Math.ceil(Math.min(remaining, daily * multiplier));
 }
 
@@ -79,8 +84,28 @@ export default function SinkingFundsSection({
   // Filtro de ciclo para recurrentes
   const [cycleFilter, setCycleFilter] = useState<"ALL" | "WEEKLY" | "BIWEEKLY" | "MONTHLY" | "OTHER">("ALL");
 
-  // Preferencia de ritmo de ahorro (Diario, Semanal, Quincenal, Mensual)
-  const [provisionPeriod, setProvisionPeriod] = useState<"DAILY" | "WEEKLY" | "BIWEEKLY" | "MONTHLY">("WEEKLY");
+  // Preferencia de ritmo de ahorro (Diario, Semanal, Quincenal, Mensual) con persistencia en localStorage
+  const [provisionPeriod, setProvisionPeriod] = useState<ProvisionPeriod>("WEEKLY");
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem(PROVISION_PERIOD_STORAGE_KEY) as ProvisionPeriod | null;
+      if (saved && VALID_PROVISION_PERIODS.includes(saved)) {
+        setProvisionPeriod(saved);
+      }
+    } catch {
+      // Ignorar si localStorage no está disponible
+    }
+  }, []);
+
+  const handleProvisionPeriodChange = (period: ProvisionPeriod) => {
+    setProvisionPeriod(period);
+    try {
+      localStorage.setItem(PROVISION_PERIOD_STORAGE_KEY, period);
+    } catch {
+      // Ignorar si localStorage no está disponible
+    }
+  };
 
   // Modales
   const [allocateModalFund, setAllocateModalFund] = useState<SinkingFund | null>(null);
@@ -176,7 +201,9 @@ export default function SinkingFundsSection({
       if (generalSelectedIds.has(f.id)) {
         const remainingNeeded = Math.max(0, f.targetAmount - f.accumulatedAmount);
         const suggested = calculateFundSuggested(f, multiplier);
-        const val = Math.min(suggested, remainingNeeded > 0 ? remainingNeeded : suggested);
+        const val = f.isOneOff
+          ? Math.min(suggested, remainingNeeded > 0 ? remainingNeeded : suggested)
+          : suggested;
         map[f.id] = val;
         sum += val;
       } else {
@@ -307,11 +334,11 @@ export default function SinkingFundsSection({
                   </span>
                 )}
               </div>
-              <p className="text-xs text-slate-500 mt-0.5">
-                {fund.isOneOff 
-                  ? `Objetivo a alcanzar en ~${daysLeft} días` 
-                  : `Ciclo: Cada ${fund.frequencyDays} días (${getCycleBadgeText(fund.frequencyDays)})`}
-              </p>
+              {fund.isOneOff && (
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Objetivo a alcanzar en ~{daysLeft} días
+                </p>
+              )}
             </div>
             <button
               onClick={() => setEditModalFund(fund)}
@@ -423,14 +450,14 @@ export default function SinkingFundsSection({
         <div className="flex items-center gap-1 bg-white border border-gray-200 p-1 rounded-xl shadow-xs self-stretch sm:self-auto">
           <span className="text-[11px] font-bold text-slate-400 uppercase px-2 hidden sm:inline">Ritmo:</span>
           {[
-            { id: "DAILY", label: "Diario" },
-            { id: "WEEKLY", label: "Semanal" },
-            { id: "BIWEEKLY", label: "Quincenal" },
-            { id: "MONTHLY", label: "Mensual" },
+            { id: "DAILY" as const, label: "Diario" },
+            { id: "WEEKLY" as const, label: "Semanal" },
+            { id: "BIWEEKLY" as const, label: "Quincenal" },
+            { id: "MONTHLY" as const, label: "Mensual" },
           ].map((p) => (
             <button
               key={p.id}
-              onClick={() => setProvisionPeriod(p.id as any)}
+              onClick={() => handleProvisionPeriodChange(p.id)}
               className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg font-bold text-xs transition-all ${
                 provisionPeriod === p.id
                   ? "bg-emerald-600 text-white shadow-xs"
