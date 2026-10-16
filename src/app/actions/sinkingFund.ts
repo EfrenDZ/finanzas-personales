@@ -19,6 +19,8 @@ export async function createSinkingFund(formData: FormData) {
   const initialAccumulated = parseFloat(formData.get("initialAccumulated") as string) || 0;
   const cycleType = (formData.get("cycleType") as string) === "ESTIMATED" ? "ESTIMATED" : "STRICT";
   const isOneOff = formData.get("isOneOff") === "true";
+  const autoPay = formData.get("autoPay") === "true";
+  const defaultWalletId = (formData.get("defaultWalletId") as string) || null;
 
   if (!name || isNaN(targetAmount) || targetAmount <= 0) {
     throw new Error("Nombre o monto objetivo inválido");
@@ -39,12 +41,15 @@ export async function createSinkingFund(formData: FormData) {
       frequencyDays,
       cycleType,
       isOneOff,
+      autoPay,
+      defaultWalletId: autoPay && defaultWalletId ? defaultWalletId : null,
       nextDueDate,
       accumulatedAmount: initialAccumulated,
     },
   });
 
   revalidatePath("/");
+  revalidatePath("/savings");
 }
 
 // Asignar dinero del saldo a este apartado (comprometer dinero)
@@ -120,6 +125,7 @@ export async function releaseFromFund(formData: FormData) {
   });
 
   revalidatePath("/");
+  revalidatePath("/savings");
 }
 
 // Registrar la compra real con el dinero apartado
@@ -181,6 +187,8 @@ export async function executeFundExpense(formData: FormData) {
   });
 
   revalidatePath("/");
+  revalidatePath("/savings");
+  revalidatePath("/accounts");
 }
 
 // Actualizar datos del apartado
@@ -194,6 +202,8 @@ export async function updateSinkingFund(formData: FormData) {
   const frequencyDays = parseInt(formData.get("frequencyDays") as string, 10);
   const nextDueDateStr = formData.get("nextDueDate") as string;
   const accumulatedAmount = parseFloat(formData.get("accumulatedAmount") as string);
+  const autoPay = formData.get("autoPay") === "true";
+  const defaultWalletId = (formData.get("defaultWalletId") as string) || null;
 
   if (!fundId || !name || isNaN(targetAmount) || targetAmount <= 0) {
     throw new Error("Datos inválidos");
@@ -210,11 +220,87 @@ export async function updateSinkingFund(formData: FormData) {
       targetAmount,
       frequencyDays,
       nextDueDate,
+      autoPay,
+      defaultWalletId: autoPay && defaultWalletId ? defaultWalletId : null,
       accumulatedAmount: isNaN(accumulatedAmount) ? 0 : accumulatedAmount,
     },
   });
 
   revalidatePath("/");
+  revalidatePath("/savings");
+}
+
+// Procesar automáticamente los apartados configurados con cobro automático cuya fecha haya llegado
+export async function checkAndProcessAutoPaySinkingFunds(userId: string) {
+  const now = new Date();
+
+  const dueFunds = await prisma.sinkingFund.findMany({
+    where: {
+      userId,
+      isCompleted: false,
+      autoPay: true,
+      defaultWalletId: { not: null },
+      nextDueDate: { lte: now },
+    },
+    include: {
+      defaultWallet: true,
+    },
+  });
+
+  if (dueFunds.length === 0) return;
+
+  for (const fund of dueFunds) {
+    if (!fund.defaultWalletId) continue;
+
+    const expenseAmount = fund.targetAmount;
+
+    await prisma.$transaction(async (tx) => {
+      // 1. Descontar de la billetera predeterminada
+      await tx.wallet.update({
+        where: { id: fund.defaultWalletId! },
+        data: {
+          balance: { decrement: expenseAmount },
+        },
+      });
+
+      // 2. Registrar la transacción de gasto en el historial
+      await tx.transaction.create({
+        data: {
+          walletId: fund.defaultWalletId!,
+          type: "EXPENSE",
+          amount: expenseAmount,
+          description: `Cobro automático de apartado: ${fund.name}`,
+        },
+      });
+
+      // 3. Si es gasto único, completar; si es recurrente, restar acumulado y avanzar ciclo
+      if (fund.isOneOff) {
+        await tx.sinkingFund.update({
+          where: { id: fund.id },
+          data: {
+            accumulatedAmount: 0,
+            isCompleted: true,
+          },
+        });
+      } else {
+        const baseDateForNext = fund.cycleType === "STRICT" 
+          ? new Date(fund.nextDueDate).getTime() 
+          : Date.now();
+        const nextDueDate = new Date(baseDateForNext + fund.frequencyDays * 86400000);
+
+        await tx.sinkingFund.update({
+          where: { id: fund.id },
+          data: {
+            accumulatedAmount: Math.max(0, fund.accumulatedAmount - expenseAmount),
+            nextDueDate,
+          },
+        });
+      }
+    });
+  }
+
+  revalidatePath("/");
+  revalidatePath("/savings");
 }
 
 // Eliminar apartado
@@ -222,12 +308,14 @@ export async function deleteSinkingFund(formData: FormData) {
   const session = await getServerSession(authOptions);
   if (!session?.user) throw new Error("No autenticado");
 
+  const userId = (session.user as any).id;
   const fundId = formData.get("fundId") as string;
   if (!fundId) throw new Error("ID inválido");
 
-  await prisma.sinkingFund.delete({
-    where: { id: fundId },
+  await prisma.sinkingFund.deleteMany({
+    where: { id: fundId, userId },
   });
 
   revalidatePath("/");
+  revalidatePath("/savings");
 }

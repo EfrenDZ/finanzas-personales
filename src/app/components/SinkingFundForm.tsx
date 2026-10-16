@@ -4,18 +4,24 @@ import { useRef, useState, useEffect } from "react";
 import { createSinkingFund } from "../actions/sinkingFund";
 import { formatDateToInput } from "@/lib/date";
 
+type Wallet = { id: string; name: string; balance: number };
+
 export default function SinkingFundForm({ 
   onSuccess, 
-  defaultIsOneOff = false 
+  defaultIsOneOff = false,
+  wallets = [],
 }: { 
   onSuccess?: () => void;
   defaultIsOneOff?: boolean;
+  wallets?: Wallet[];
 }) {
   const formRef = useRef<HTMLFormElement>(null);
   const [loading, setLoading] = useState(false);
   const [targetAmount, setTargetAmount] = useState<string>("");
   const [frequencyDays, setFrequencyDays] = useState<string>("");
   const [nextDueDate, setNextDueDate] = useState<string>("");
+  const [autoPay, setAutoPay] = useState(false);
+  const [defaultWalletId, setDefaultWalletId] = useState("");
 
   const [isOneOff, setIsOneOff] = useState(defaultIsOneOff);
 
@@ -227,6 +233,50 @@ export default function SinkingFundForm({
             className="w-full px-4 py-3 border border-gray-300 rounded-xl text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
           />
         </div>
+      </div>
+      
+      {/* Cobro automático opcional */}
+      <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2.5">
+        <label className="flex items-center justify-between cursor-pointer">
+          <div className="pr-2">
+            <span className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+              ⚡ Cobro Automático
+            </span>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Cobrar el gasto y avanzar el ciclo automáticamente al vencer la fecha sin tener que presionar &ldquo;Pagar Gasto&rdquo;.
+            </p>
+          </div>
+          <input
+            type="checkbox"
+            name="autoPay"
+            value="true"
+            checked={autoPay}
+            onChange={(e) => setAutoPay(e.target.checked)}
+            className="w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500 cursor-pointer"
+          />
+        </label>
+
+        {autoPay && wallets.length > 0 && (
+          <div className="pt-2 border-t border-slate-200">
+            <label className="block text-xs font-semibold text-slate-700 mb-1">
+              Cuenta de donde se cobrará automáticamente:
+            </label>
+            <select
+              name="defaultWalletId"
+              required={autoPay}
+              value={defaultWalletId}
+              onChange={(e) => setDefaultWalletId(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-xl text-slate-900 bg-white text-xs font-medium outline-none focus:ring-2 focus:ring-emerald-500"
+            >
+              <option value="">Selecciona una cuenta...</option>
+              {wallets.map((w) => (
+                <option key={w.id} value={w.id}>
+                  {w.name} (${w.balance.toFixed(2)})
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
       </div>
 
       <button

@@ -21,6 +21,9 @@ type SinkingFund = {
   accumulatedAmount: number;
   isOneOff?: boolean;
   isCompleted?: boolean;
+  autoPay?: boolean;
+  defaultWalletId?: string | null;
+  defaultWallet?: Wallet | null;
 };
 
 type ProvisionPeriod = "DAILY" | "WEEKLY" | "BIWEEKLY" | "MONTHLY";
@@ -346,34 +349,44 @@ export default function SinkingFundsSection({
               )}
             </div>
             <button
+              type="button"
               onClick={() => setEditModalFund(fund)}
-              title="Editar apartado"
-              className="text-slate-300 hover:text-slate-600 transition-colors text-sm p-1 rounded-lg hover:bg-slate-50"
+              title={fund.isOneOff ? "Editar meta" : "Editar apartado"}
+              aria-label={fund.isOneOff ? "Editar meta" : "Editar apartado"}
+              className="p-1.5 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded-lg transition-colors cursor-pointer"
             >
-              ️
+              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
             </button>
           </div>
 
           {/* Monto objetivo y sugerencia redondeada */}
           <div className="my-3 flex justify-between items-baseline gap-2">
             <div>
-              <p className="text-xs font-semibold uppercase text-slate-400">Apartado actual</p>
-              <p className="text-2xl font-black text-slate-900">
+              <p className="text-[11px] font-bold uppercase tracking-wider text-slate-400">
+                {fund.isOneOff ? "Meta acumulada" : "Para próximo gasto"}
+              </p>
+              <p className="text-2xl font-black text-slate-900 tracking-tight">
                 ${fund.accumulatedAmount.toFixed(2)}{" "}
-                <span className="text-xs font-medium text-slate-400">de ${fund.targetAmount.toFixed(2)}</span>
+                <span className="text-xs font-semibold text-slate-400">
+                  / ${fund.targetAmount.toFixed(2)}
+                </span>
               </p>
             </div>
             <div className="text-right flex flex-col items-end">
-              <span className="text-[11px] font-semibold text-slate-400">
-                Cuota: ${quota} {periodLabel}
+              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                Cuota {periodLabel}: ${quota}
               </span>
               <div className="mt-1">
                 {isCoveredForPeriod ? (
-                  <span className="text-xs font-bold text-teal-800 bg-teal-50 px-2.5 py-1 rounded-lg border border-teal-200 inline-block">
-                    ✓ Cubierto
+                  <span className="text-xs font-bold text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200 inline-flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                    Periodo cubierto
                   </span>
                 ) : (
-                  <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100 inline-block">
+                  <span className="text-xs font-bold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-100 inline-flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
                     Faltan ${remainingToFund}
                   </span>
                 )}
@@ -381,8 +394,8 @@ export default function SinkingFundsSection({
             </div>
           </div>
 
-          {/* Barra de progreso visual */}
-          <div className="w-full bg-gray-100 h-2.5 rounded-full overflow-hidden mb-2">
+          {/* Barra de progreso visual para el próximo gasto */}
+          <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden mb-1.5">
             <div
               className={`h-full rounded-full transition-all duration-500 ${
                 progressPercent >= 100 
@@ -394,11 +407,19 @@ export default function SinkingFundsSection({
               style={{ width: `${progressPercent}%` }}
             />
           </div>
-          <div className="flex justify-between text-[11px] text-slate-400 font-medium mb-4">
-            <span>{progressPercent}% fondeado</span>
-            <span suppressHydrationWarning>
-              {fund.isOneOff ? "Fecha objetivo: " : "Próximo gasto: "}
-              {formatDate(nextDue)} (~{daysLeft}d)
+          <div className="flex justify-between items-center text-[11px] text-slate-500 font-medium mb-4">
+            <span>
+              {progressPercent >= 100 ? (
+                <strong className="text-emerald-700 font-bold flex items-center gap-1">
+                  ✓ Próximo pago asegurado
+                </strong>
+              ) : (
+                <span>{progressPercent}% del próximo pago</span>
+              )}
+            </span>
+            <span suppressHydrationWarning className="text-slate-400">
+              {fund.isOneOff ? "Objetivo: " : "Vence: "}
+              <strong className="text-slate-600">{formatDate(nextDue)}</strong> (~{daysLeft}d)
             </span>
           </div>
         </div>
@@ -411,12 +432,24 @@ export default function SinkingFundsSection({
           >
             + Apartar Dinero
           </button>
-          <button
-            onClick={() => setExpenseModalFund(fund)}
-            className="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 px-3 rounded-xl text-xs transition-all active:scale-95 shadow-sm"
-          >
-            {fund.isOneOff ? " Cumplir Meta" : " Pagar Gasto"}
-          </button>
+          {fund.autoPay && fund.defaultWallet ? (
+            <div 
+              title={`Cobro programado de $${fund.targetAmount.toFixed(2)} desde ${fund.defaultWallet.name}`}
+              className="flex-1 bg-slate-50 border border-slate-200/80 py-2.5 px-3 rounded-xl flex items-center justify-center gap-1.5 text-xs text-slate-600 font-semibold"
+            >
+              <span className="text-amber-500 font-bold">⚡</span>
+              <span className="truncate">
+                {daysLeft === 0 ? "Se cobra hoy" : `Se cobrará en ~${daysLeft}d`}
+              </span>
+            </div>
+          ) : (
+            <button
+              onClick={() => setExpenseModalFund(fund)}
+              className="flex-1 bg-slate-900 hover:bg-slate-800 text-white font-bold py-2.5 px-3 rounded-xl text-xs transition-all active:scale-95 shadow-sm"
+            >
+              {fund.isOneOff ? " Cumplir Meta" : " Pagar Gasto"}
+            </button>
+          )}
         </div>
       </div>
     );
@@ -794,7 +827,7 @@ export default function SinkingFundsSection({
                           : "bg-white border border-gray-200 text-slate-700 hover:bg-slate-50"
                       }`}
                     >
-                      <span>️</span> Proporcional
+                      <span>⚖️</span> Proporcional
                     </button>
                   </div>
                 </div>
@@ -916,7 +949,7 @@ export default function SinkingFundsSection({
                       ? " Prioridad por vencimiento más próximo activa"
                       : distributionStrategy === "SUGGESTED"
                       ? " Cuotas sugeridas del periodo"
-                      : "️ Reparto proporcional"}
+                      : "⚖️ Reparto proporcional"}
                   </span>
                 </div>
                 <span className="text-2xl font-black text-emerald-800">
@@ -974,17 +1007,39 @@ export default function SinkingFundsSection({
             >
               <input type="hidden" name="fundId" value={allocateModalFund.id} />
 
-              <div className="p-3 bg-emerald-50 border border-emerald-100 rounded-xl text-xs text-emerald-900">
-                <p>
-                  Meta: <strong>${allocateModalFund.targetAmount.toFixed(2)}</strong> • Llevas apartado:{" "}
-                  <strong>${allocateModalFund.accumulatedAmount.toFixed(2)}</strong>
-                </p>
-                <p className="mt-1">
-                  Falta para completar:{" "}
-                  <strong>
-                    ${Math.max(0, allocateModalFund.targetAmount - allocateModalFund.accumulatedAmount).toFixed(2)}
-                  </strong>
-                </p>
+              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 space-y-1.5">
+                <div className="flex justify-between items-center">
+                  <span className="text-slate-500">Próximo pago:</span>
+                  <span className="font-bold">
+                    ${allocateModalFund.targetAmount.toFixed(2)}{" "}
+                    {allocateModalFund.accumulatedAmount >= allocateModalFund.targetAmount ? (
+                      <span className="text-emerald-700 font-bold ml-1">✓ Asegurado</span>
+                    ) : (
+                      <span className="text-amber-700 ml-1">
+                        (Faltan ${Math.max(0, allocateModalFund.targetAmount - allocateModalFund.accumulatedAmount).toFixed(2)})
+                      </span>
+                    )}
+                  </span>
+                </div>
+                {!allocateModalFund.isOneOff && (
+                  <div className="flex justify-between items-center pt-1 border-t border-slate-200/60">
+                    <span className="text-slate-500">Provisión {periodLabel}:</span>
+                    <span className="font-bold">
+                      ${calculateFundQuota(allocateModalFund, multiplier).toFixed(2)}{" "}
+                      {calculateFundRemainingForPeriod(allocateModalFund, multiplier) === 0 ? (
+                        <span className="text-emerald-700 font-bold ml-1">✓ Cubierta</span>
+                      ) : (
+                        <span className="text-emerald-700 ml-1">
+                          (Faltan ${calculateFundRemainingForPeriod(allocateModalFund, multiplier).toFixed(2)})
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                )}
+                <div className="flex justify-between items-center pt-1 border-t border-slate-200/60 font-medium">
+                  <span className="text-slate-500">Apartado actual acumulado:</span>
+                  <strong className="text-slate-900">${allocateModalFund.accumulatedAmount.toFixed(2)}</strong>
+                </div>
               </div>
 
               <div>
@@ -1104,12 +1159,18 @@ export default function SinkingFundsSection({
           <div className="w-full max-w-lg bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl max-h-[90vh] overflow-y-auto animate-in fade-in">
             <div className="flex justify-between items-center p-6 border-b border-gray-100 sticky top-0 bg-white z-10">
               <div>
-                <h3 className="text-xl font-bold text-slate-900">Editar</h3>
+                <h3 className="text-xl font-bold text-slate-900">
+                  {editModalFund.isOneOff ? "Editar Meta" : "Editar Apartado"}
+                </h3>
                 <p className="text-xs text-slate-500">{editModalFund.name}</p>
               </div>
               <button
+                type="button"
                 onClick={() => setEditModalFund(null)}
-                className="text-gray-400 hover:text-gray-600 text-2xl font-bold p-1">✕</button>
+                className="text-gray-400 hover:text-gray-600 text-2xl font-bold p-1 cursor-pointer"
+              >
+                ✕
+              </button>
             </div>
             <div className="p-6 space-y-4">
               <form
@@ -1188,6 +1249,47 @@ export default function SinkingFundsSection({
                   </div>
                 </div>
 
+                {/* Cobro automático opcional */}
+                <div className="p-3.5 bg-slate-50 border border-slate-200 rounded-2xl space-y-2.5">
+                  <label className="flex items-center justify-between cursor-pointer">
+                    <div className="pr-2">
+                      <span className="text-sm font-bold text-slate-800 flex items-center gap-1.5">
+                        ⚡ Cobro Automático
+                      </span>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        Cobrar el gasto y avanzar el ciclo automáticamente al vencer la fecha sin tener que presionar &ldquo;Pagar Gasto&rdquo;.
+                      </p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      name="autoPay"
+                      value="true"
+                      defaultChecked={editModalFund.autoPay || false}
+                      className="w-4 h-4 text-emerald-600 rounded border-gray-300 focus:ring-emerald-500 cursor-pointer"
+                    />
+                  </label>
+
+                  {wallets.length > 0 && (
+                    <div className="pt-2 border-t border-slate-200">
+                      <label className="block text-xs font-semibold text-slate-700 mb-1">
+                        Cuenta de donde se cobrará automáticamente:
+                      </label>
+                      <select
+                        name="defaultWalletId"
+                        defaultValue={editModalFund.defaultWalletId || ""}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-xl text-slate-900 bg-white text-xs font-medium outline-none focus:ring-2 focus:ring-emerald-500"
+                      >
+                        <option value="">Selecciona una cuenta...</option>
+                        {wallets.map((w) => (
+                          <option key={w.id} value={w.id}>
+                            {w.name} (${w.balance.toFixed(2)})
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  )}
+                </div>
+
                 <button
                   type="submit"
                   disabled={loading}
@@ -1197,10 +1299,16 @@ export default function SinkingFundsSection({
                 </button>
               </form>
 
-              <div className="pt-4 border-t border-gray-100 flex justify-end">
+              <div className="pt-4 border-t border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs font-bold text-slate-800">Zona de peligro</p>
+                  <p className="text-[11px] text-slate-500">
+                    Al eliminar este apartado, el saldo acumulado vuelve a estar libre para gastar.
+                  </p>
+                </div>
                 <form
                   action={async (formData) => {
-                    if (confirm(`¿Eliminar "${editModalFund.name}"?`)) {
+                    if (confirm(`¿Estás seguro de eliminar el apartado "${editModalFund.name}"?`)) {
                       setLoading(true);
                       await deleteSinkingFund(formData);
                       setLoading(false);
@@ -1211,9 +1319,13 @@ export default function SinkingFundsSection({
                   <input type="hidden" name="fundId" value={editModalFund.id} />
                   <button
                     type="submit"
-                    className="text-xs font-semibold text-rose-600 hover:text-rose-800 underline"
+                    disabled={loading}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 border border-rose-200 px-3.5 py-2 rounded-xl transition-all active:scale-95 cursor-pointer disabled:opacity-50 whitespace-nowrap"
                   >
-                    Eliminar
+                    <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                    </svg>
+                    Eliminar Apartado
                   </button>
                 </form>
               </div>

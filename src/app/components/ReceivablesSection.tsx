@@ -135,11 +135,15 @@ export default function ReceivablesSection({
                   + Más Deuda
                 </button>
                 <button
+                  type="button"
                   onClick={() => setEditModalRec(rec)}
-                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 px-3 rounded-xl text-xs transition-all active:scale-95 flex items-center justify-center"
+                  className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold py-2.5 px-3 rounded-xl text-xs transition-all active:scale-95 flex items-center justify-center gap-1.5 cursor-pointer"
                   title="Editar configuración o adelantar corte"
                 >
-                  ️ Editar
+                  <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+                  </svg>
+                  Editar
                 </button>
               </div>
             </div>

@@ -6,6 +6,7 @@ import Link from "next/link";
 import HomeActions from "./components/HomeActions";
 import RecentTransactionsSection from "./components/RecentTransactionsSection";
 import { getAccruedReceivables } from "./actions/receivable";
+import { checkAndProcessAutoPaySinkingFunds } from "./actions/sinkingFund";
 
 export default async function Home() {
   const session = await getServerSession(authOptions);
@@ -16,6 +17,9 @@ export default async function Home() {
 
   const user = session.user as { id: string; username?: string; name?: string };
   const userId = user.id;
+
+  // Procesar cobros automáticos de apartados si venció la fecha
+  await checkAndProcessAutoPaySinkingFunds(userId);
 
   // 1. Cuentas físicas y saldo líquido
   const wallets = await prisma.wallet.findMany({

@@ -34,6 +34,7 @@ model Wallet {
   updatedAt DateTime @updatedAt
 
   transactions Transaction[]
+  sinkingFunds SinkingFund[]
 }
 
 model Category {
@@ -112,6 +113,9 @@ model SinkingFund {
   accumulatedAmount Float    @default(0)
   isOneOff          Boolean  @default(false)
   isCompleted       Boolean  @default(false)
+  autoPay           Boolean  @default(false)
+  defaultWalletId   String?
+  defaultWallet     Wallet?  @relation(fields: [defaultWalletId], references: [id], onDelete: SetNull)
   createdAt         DateTime @default(now())
   updatedAt         DateTime @updatedAt
 }

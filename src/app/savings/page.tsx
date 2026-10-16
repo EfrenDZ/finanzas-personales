@@ -4,6 +4,7 @@ import { redirect } from "next/navigation";
 import { prisma } from "@/lib/prisma";
 import SavingActions from "./SavingActions";
 import SinkingFundsSection from "../components/SinkingFundsSection";
+import { checkAndProcessAutoPaySinkingFunds } from "../actions/sinkingFund";
 
 export default async function SavingsPage() {
   const session = await getServerSession(authOptions);
@@ -15,9 +16,13 @@ export default async function SavingsPage() {
   const user = session.user as { id: string; username?: string; name?: string };
   const userId = user.id;
 
+  // Procesar cobros automáticos si venció la fecha
+  await checkAndProcessAutoPaySinkingFunds(userId);
+
   const [sinkingFunds, wallets] = await Promise.all([
     prisma.sinkingFund.findMany({
       where: { userId, isCompleted: false },
+      include: { defaultWallet: true },
       orderBy: { nextDueDate: "asc" },
     }),
     prisma.wallet.findMany({
@@ -38,7 +43,7 @@ export default async function SavingsPage() {
             Provisiona dinero poco a poco para gastos futuros, seguros o metas de ahorro.
           </p>
         </div>
-        <SavingActions />
+        <SavingActions wallets={wallets} />
       </div>
 
       <SinkingFundsSection sinkingFunds={sinkingFunds} wallets={wallets} />

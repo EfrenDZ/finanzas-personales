@@ -3,7 +3,9 @@
 import { useState } from "react";
 import SinkingFundForm from "../components/SinkingFundForm";
 
-export default function SavingActions() {
+type Wallet = { id: string; name: string; balance: number };
+
+export default function SavingActions({ wallets = [] }: { wallets?: Wallet[] }) {
   const [modalType, setModalType] = useState<"fund" | "goal" | null>(null);
 
   return (
@@ -36,6 +38,7 @@ export default function SavingActions() {
                 className="text-gray-400 hover:text-gray-600 text-2xl font-bold p-1">✕</button>
             </div>
             <SinkingFundForm 
+              wallets={wallets}
               defaultIsOneOff={modalType === "goal"} 
               onSuccess={() => setModalType(null)} 
             />
