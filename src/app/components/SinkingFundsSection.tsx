@@ -119,6 +119,7 @@ export default function SinkingFundsSection({
 
   // Modales
   const [allocateModalFund, setAllocateModalFund] = useState<SinkingFund | null>(null);
+  const [allocateActionType, setAllocateActionType] = useState<"ALLOCATE" | "RELEASE">("ALLOCATE");
   const [expenseModalFund, setExpenseModalFund] = useState<SinkingFund | null>(null);
   const [editModalFund, setEditModalFund] = useState<SinkingFund | null>(null);
   const [showGeneralModal, setShowGeneralModal] = useState(false);
@@ -427,7 +428,10 @@ export default function SinkingFundsSection({
         {/* Botones de acción */}
         <div className="flex gap-2 pt-2 border-t border-gray-100 mt-2">
           <button
-            onClick={() => setAllocateModalFund(fund)}
+            onClick={() => {
+              setAllocateActionType("ALLOCATE");
+              setAllocateModalFund(fund);
+            }}
             className="flex-1 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold py-2.5 px-3 rounded-xl text-xs transition-all active:scale-95"
           >
             + Apartar Dinero
@@ -983,96 +987,179 @@ export default function SinkingFundsSection({
         </div>
       )}
 
-      {/* MODAL: APARTAR DINERO INDIVIDUAL */}
+      {/* MODAL: APARTAR O RETIRAR DINERO INDIVIDUAL */}
       {allocateModalFund && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 p-0 sm:p-4 backdrop-blur-sm">
           <div className="w-full max-w-lg bg-white rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden animate-in fade-in">
             <div className="flex justify-between items-center p-6 border-b border-gray-100">
               <div>
-                <h3 className="text-xl font-bold text-slate-900">Apartar Dinero</h3>
+                <h3 className="text-xl font-bold text-slate-900">
+                  {allocateActionType === "ALLOCATE" ? "Apartar Dinero" : "Retirar Dinero"}
+                </h3>
                 <p className="text-xs text-slate-500">{allocateModalFund.name}</p>
               </div>
               <button
+                type="button"
                 onClick={() => setAllocateModalFund(null)}
-                className="text-gray-400 hover:text-gray-600 text-2xl font-bold p-1">✕</button>
-            </div>
-            <form
-              action={async (formData) => {
-                setLoading(true);
-                await allocateToFund(formData);
-                setLoading(false);
-                setAllocateModalFund(null);
-              }}
-              className="p-6 space-y-4"
-            >
-              <input type="hidden" name="fundId" value={allocateModalFund.id} />
-
-              <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 space-y-1.5">
-                <div className="flex justify-between items-center">
-                  <span className="text-slate-500">Próximo pago:</span>
-                  <span className="font-bold">
-                    ${allocateModalFund.targetAmount.toFixed(2)}{" "}
-                    {allocateModalFund.accumulatedAmount >= allocateModalFund.targetAmount ? (
-                      <span className="text-emerald-700 font-bold ml-1">✓ Asegurado</span>
-                    ) : (
-                      <span className="text-amber-700 ml-1">
-                        (Faltan ${Math.max(0, allocateModalFund.targetAmount - allocateModalFund.accumulatedAmount).toFixed(2)})
-                      </span>
-                    )}
-                  </span>
-                </div>
-                {!allocateModalFund.isOneOff && (
-                  <div className="flex justify-between items-center pt-1 border-t border-slate-200/60">
-                    <span className="text-slate-500">Provisión {periodLabel}:</span>
-                    <span className="font-bold">
-                      ${calculateFundQuota(allocateModalFund, multiplier).toFixed(2)}{" "}
-                      {calculateFundRemainingForPeriod(allocateModalFund, multiplier) === 0 ? (
-                        <span className="text-emerald-700 font-bold ml-1">✓ Cubierta</span>
-                      ) : (
-                        <span className="text-emerald-700 ml-1">
-                          (Faltan ${calculateFundRemainingForPeriod(allocateModalFund, multiplier).toFixed(2)})
-                        </span>
-                      )}
-                    </span>
-                  </div>
-                )}
-                <div className="flex justify-between items-center pt-1 border-t border-slate-200/60 font-medium">
-                  <span className="text-slate-500">Apartado actual acumulado:</span>
-                  <strong className="text-slate-900">${allocateModalFund.accumulatedAmount.toFixed(2)}</strong>
-                </div>
-              </div>
-
-              <div>
-                <div className="flex justify-between items-center mb-1">
-                  <label className="block text-sm font-medium text-slate-700">
-                    ¿Cuánto dinero deseas apartar hoy? ($)
-                  </label>
-                  <span className="text-xs font-bold text-emerald-700">
-                    Sugerido: ${calculateFundRemainingForPeriod(allocateModalFund, multiplier) || calculateFundQuota(allocateModalFund, multiplier)}
-                  </span>
-                </div>
-                <input
-                  type="number"
-                  name="amount"
-                  step="0.01"
-                  min="0.01"
-                  required
-                  defaultValue={calculateFundRemainingForPeriod(allocateModalFund, multiplier) || calculateFundQuota(allocateModalFund, multiplier) || 100}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
-                />
-                <p className="text-xs text-slate-400 mt-1">
-                  Este dinero se compromete para este fondo y se resta de tu liquidez libre.
-                </p>
-              </div>
-
-              <button
-                type="submit"
-                disabled={loading}
-                className="w-full bg-emerald-600 text-white px-8 py-4 mt-2 rounded-xl font-bold hover:bg-emerald-700 disabled:opacity-50 transition-all shadow-md active:scale-95"
+                className="text-gray-400 hover:text-gray-600 text-2xl font-bold p-1 cursor-pointer"
               >
-                {loading ? "Guardando..." : "Guardar en este Apartado"}
+                ✕
               </button>
-            </form>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* Pestañas Apartar / Retirar */}
+              <div className="flex bg-slate-100 p-1 rounded-xl">
+                <button
+                  type="button"
+                  onClick={() => setAllocateActionType("ALLOCATE")}
+                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                    allocateActionType === "ALLOCATE"
+                      ? "bg-white text-emerald-800 shadow-sm"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  + Apartar Dinero
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setAllocateActionType("RELEASE")}
+                  className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all cursor-pointer ${
+                    allocateActionType === "RELEASE"
+                      ? "bg-white text-amber-800 shadow-sm"
+                      : "text-slate-600 hover:text-slate-900"
+                  }`}
+                >
+                  - Retirar / Liberar Dinero
+                </button>
+              </div>
+
+              {allocateActionType === "ALLOCATE" ? (
+                <form
+                  action={async (formData) => {
+                    setLoading(true);
+                    await allocateToFund(formData);
+                    setLoading(false);
+                    setAllocateModalFund(null);
+                  }}
+                  className="space-y-4"
+                >
+                  <input type="hidden" name="fundId" value={allocateModalFund.id} />
+
+                  <div className="p-3 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-700 space-y-1.5">
+                    <div className="flex justify-between items-center">
+                      <span className="text-slate-500">Próximo pago:</span>
+                      <span className="font-bold">
+                        ${allocateModalFund.targetAmount.toFixed(2)}{" "}
+                        {allocateModalFund.accumulatedAmount >= allocateModalFund.targetAmount ? (
+                          <span className="text-emerald-700 font-bold ml-1">✓ Asegurado</span>
+                        ) : (
+                          <span className="text-amber-700 ml-1">
+                            (Faltan ${Math.max(0, allocateModalFund.targetAmount - allocateModalFund.accumulatedAmount).toFixed(2)})
+                          </span>
+                        )}
+                      </span>
+                    </div>
+                    {!allocateModalFund.isOneOff && (
+                      <div className="flex justify-between items-center pt-1 border-t border-slate-200/60">
+                        <span className="text-slate-500">Provisión {periodLabel}:</span>
+                        <span className="font-bold">
+                          ${calculateFundQuota(allocateModalFund, multiplier).toFixed(2)}{" "}
+                          {calculateFundRemainingForPeriod(allocateModalFund, multiplier) === 0 ? (
+                            <span className="text-emerald-700 font-bold ml-1">✓ Cubierta</span>
+                          ) : (
+                            <span className="text-emerald-700 ml-1">
+                              (Faltan ${calculateFundRemainingForPeriod(allocateModalFund, multiplier).toFixed(2)})
+                            </span>
+                          )}
+                        </span>
+                      </div>
+                    )}
+                    <div className="flex justify-between items-center pt-1 border-t border-slate-200/60 font-medium">
+                      <span className="text-slate-500">Apartado actual acumulado:</span>
+                      <strong className="text-slate-900">${allocateModalFund.accumulatedAmount.toFixed(2)}</strong>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div className="flex justify-between items-center mb-1">
+                      <label className="block text-sm font-medium text-slate-700">
+                        ¿Cuánto dinero deseas apartar hoy? ($)
+                      </label>
+                      <span className="text-xs font-bold text-emerald-700">
+                        Sugerido: ${calculateFundRemainingForPeriod(allocateModalFund, multiplier) || calculateFundQuota(allocateModalFund, multiplier)}
+                      </span>
+                    </div>
+                    <input
+                      type="number"
+                      name="amount"
+                      step="0.01"
+                      min="0.01"
+                      required
+                      defaultValue={calculateFundRemainingForPeriod(allocateModalFund, multiplier) || calculateFundQuota(allocateModalFund, multiplier) || 100}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
+                    />
+                    <p className="text-xs text-slate-400 mt-1">
+                      Este dinero se compromete para este fondo y se resta de tu liquidez libre.
+                    </p>
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="w-full bg-emerald-600 text-white px-8 py-4 mt-2 rounded-xl font-bold hover:bg-emerald-700 disabled:opacity-50 transition-all shadow-md active:scale-95 cursor-pointer"
+                  >
+                    {loading ? "Guardando..." : "Guardar en este Apartado"}
+                  </button>
+                </form>
+              ) : (
+                <form
+                  action={async (formData) => {
+                    setLoading(true);
+                    await releaseFromFund(formData);
+                    setLoading(false);
+                    setAllocateModalFund(null);
+                  }}
+                  className="space-y-4"
+                >
+                  <input type="hidden" name="fundId" value={allocateModalFund.id} />
+
+                  <div className="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 space-y-1.5">
+                    <div className="flex justify-between items-center">
+                      <span className="text-amber-700">Saldo apartado acumulado disponible:</span>
+                      <strong className="text-amber-950 font-bold">${allocateModalFund.accumulatedAmount.toFixed(2)}</strong>
+                    </div>
+                    <p className="text-[11px] text-amber-800">
+                      El dinero retirado volverá inmediatamente a tu saldo &quot;Libre para gastar&quot;.
+                    </p>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-slate-700 mb-1">
+                      ¿Cuánto dinero deseas retirar del apartado? ($)
+                    </label>
+                    <input
+                      type="number"
+                      name="amount"
+                      step="0.01"
+                      min="0.01"
+                      max={allocateModalFund.accumulatedAmount}
+                      required
+                      defaultValue={Math.min(100, allocateModalFund.accumulatedAmount)}
+                      className="w-full px-4 py-3 border border-gray-300 rounded-xl text-slate-900 outline-none focus:ring-2 focus:ring-amber-500 font-medium"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    disabled={loading || allocateModalFund.accumulatedAmount <= 0}
+                    className="w-full bg-amber-600 hover:bg-amber-700 text-white px-8 py-4 mt-2 rounded-xl font-bold disabled:opacity-50 transition-all shadow-md active:scale-95 cursor-pointer"
+                  >
+                    {loading ? "Retirando..." : "Retirar y Devolver a Saldo Libre"}
+                  </button>
+                </form>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -1243,9 +1330,13 @@ export default function SinkingFundsSection({
                       type="number"
                       name="accumulatedAmount"
                       step="0.01"
+                      min="0"
                       defaultValue={editModalFund.accumulatedAmount}
                       className="w-full px-4 py-3 border border-gray-300 rounded-xl text-slate-900 outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
                     />
+                    <p className="text-[11px] text-slate-400 mt-1">
+                      Ajusta este saldo directamente si te equivocaste o deseas calibrarlo.
+                    </p>
                   </div>
                 </div>
 

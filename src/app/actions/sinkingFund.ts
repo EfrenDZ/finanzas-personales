@@ -105,6 +105,7 @@ export async function releaseFromFund(formData: FormData) {
   const session = await getServerSession(authOptions);
   if (!session?.user) throw new Error("No autenticado");
 
+  const userId = (session.user as any).id;
   const fundId = formData.get("fundId") as string;
   const amount = parseFloat(formData.get("amount") as string);
 
@@ -112,7 +113,7 @@ export async function releaseFromFund(formData: FormData) {
     throw new Error("Monto a liberar inválido");
   }
 
-  const fund = await prisma.sinkingFund.findUnique({ where: { id: fundId } });
+  const fund = await prisma.sinkingFund.findFirst({ where: { id: fundId, userId } });
   if (!fund) throw new Error("Apartado no encontrado");
 
   const newAmount = Math.max(0, fund.accumulatedAmount - amount);

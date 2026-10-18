@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useState, useEffect, useRef } from "react";
 
 interface NavigationProps {
   user?: {
@@ -60,6 +61,51 @@ const NAV_ITEMS = [
 
 export default function Navigation({ user }: NavigationProps) {
   const pathname = usePathname();
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [isDark, setIsDark] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
+
+  // Sincronizar estado inicial de tema en el cliente
+  useEffect(() => {
+    const isDarkMode =
+      document.documentElement.classList.contains("dark") ||
+      localStorage.getItem("theme") === "dark";
+    setIsDark(isDarkMode);
+  }, []);
+
+  // Cerrar menú al hacer clic fuera o presionar Escape
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    }
+    function handleKeyDown(event: KeyboardEvent) {
+      if (event.key === "Escape") {
+        setIsMenuOpen(false);
+      }
+    }
+    if (isMenuOpen) {
+      document.addEventListener("mousedown", handleClickOutside);
+      document.addEventListener("keydown", handleKeyDown);
+    }
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [isMenuOpen]);
+
+  const toggleDarkMode = () => {
+    const nextDark = !isDark;
+    setIsDark(nextDark);
+    if (nextDark) {
+      document.documentElement.classList.add("dark");
+      localStorage.setItem("theme", "dark");
+    } else {
+      document.documentElement.classList.remove("dark");
+      localStorage.setItem("theme", "light");
+    }
+  };
 
   // No mostrar navegación en la pantalla de login
   if (pathname.startsWith("/login")) {
@@ -107,25 +153,124 @@ export default function Navigation({ user }: NavigationProps) {
               </nav>
             </div>
 
-            {/* Usuario y Cerrar Sesión */}
-            <div className="flex items-center gap-3">
-              <div className="hidden sm:block text-right">
-                <p className="text-xs text-slate-400 font-medium">Conectado como</p>
-                <p className="text-sm font-bold text-slate-800 leading-tight">
-                  {displayName}
-                </p>
-              </div>
-
-              <a
-                href="/api/auth/signout"
-                title="Cerrar Sesión"
-                className="text-xs font-semibold text-rose-600 hover:text-rose-700 bg-rose-50 hover:bg-rose-100 px-3 py-2 rounded-xl transition-colors flex items-center gap-1.5"
+            {/* Menú de Usuario y Opciones Desplegable */}
+            <div className="relative" ref={menuRef}>
+              <button
+                type="button"
+                onClick={() => setIsMenuOpen((prev) => !prev)}
+                className="flex items-center gap-2.5 p-1.5 sm:px-3 sm:py-2 rounded-2xl border border-gray-200/80 hover:border-gray-300 hover:bg-slate-50 transition-all focus:outline-none focus:ring-2 focus:ring-slate-900/10 cursor-pointer"
+                aria-expanded={isMenuOpen}
+                aria-haspopup="menu"
+                aria-label="Menú de usuario y preferencias"
               >
-                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                <div className="w-8 h-8 rounded-xl bg-slate-900 text-white flex items-center justify-center font-bold text-xs shadow-sm">
+                  {displayName.charAt(0).toUpperCase()}
+                </div>
+                <div className="hidden sm:block text-left">
+                  <p className="text-xs font-bold text-slate-800 leading-tight">
+                    {displayName}
+                  </p>
+                  <p className="text-[10px] text-slate-400 font-medium">Opciones</p>
+                </div>
+                <svg
+                  className={`w-4 h-4 text-slate-400 transition-transform duration-200 ${
+                    isMenuOpen ? "rotate-180" : ""
+                  }`}
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor"
+                  strokeWidth={2}
+                >
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
                 </svg>
-                <span className="hidden sm:inline">Cerrar Sesión</span>
-              </a>
+              </button>
+
+              {/* Menú Desplegable */}
+              {isMenuOpen && (
+                <div className="absolute right-0 mt-2 w-64 bg-white rounded-2xl shadow-xl border border-gray-100 py-1.5 z-50 animate-in fade-in zoom-in-95 duration-150">
+                  {/* Encabezado del usuario */}
+                  <div className="px-4 py-3 border-b border-gray-100">
+                    <p className="text-[10px] uppercase tracking-wider text-slate-400 font-semibold">Conectado como</p>
+                    <p className="text-sm font-bold text-slate-900 truncate">
+                      {displayName}
+                    </p>
+                    {user?.username && (
+                      <p className="text-xs text-slate-500 font-mono mt-0.5">
+                        @{user.username}
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Acciones */}
+                  <div className="p-1.5 space-y-1">
+                    {/* Botón Activar Modo Noche */}
+                    <button
+                      type="button"
+                      onClick={toggleDarkMode}
+                      className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-slate-50 transition-colors text-left cursor-pointer group"
+                    >
+                      <div className="flex items-center gap-2.5">
+                        <div
+                          className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                            isDark
+                              ? "bg-indigo-50 text-indigo-600"
+                              : "bg-amber-50 text-amber-600"
+                          }`}
+                        >
+                          {isDark ? (
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                            </svg>
+                          ) : (
+                            <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                            </svg>
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-xs font-semibold text-slate-800">
+                            Modo noche
+                          </p>
+                          <p className="text-[10px] text-slate-400">
+                            {isDark ? "Activado" : "Desactivado"}
+                          </p>
+                        </div>
+                      </div>
+
+                      {/* Switch Visual */}
+                      <div
+                        className={`w-9 h-5 rounded-full transition-colors relative p-0.5 ${
+                          isDark ? "bg-slate-900" : "bg-slate-200"
+                        }`}
+                      >
+                        <div
+                          className={`w-4 h-4 rounded-full bg-white shadow-sm transition-transform duration-200 ${
+                            isDark ? "translate-x-4" : "translate-x-0"
+                          }`}
+                        />
+                      </div>
+                    </button>
+
+                    <div className="h-px bg-gray-100 my-1" />
+
+                    {/* Botón Cerrar Sesión */}
+                    <a
+                      href="/api/auth/signout"
+                      className="w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-rose-600 hover:bg-rose-50 transition-colors text-left font-semibold text-xs group cursor-pointer"
+                    >
+                      <div className="w-8 h-8 rounded-lg bg-rose-50 group-hover:bg-rose-100 flex items-center justify-center text-rose-600 transition-colors">
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" />
+                        </svg>
+                      </div>
+                      <div>
+                        <p className="text-xs font-semibold text-rose-600">Cerrar Sesión</p>
+                        <p className="text-[10px] text-rose-400">Finalizar sesión actual</p>
+                      </div>
+                    </a>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
