@@ -3,6 +3,8 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect, useRef } from "react";
+import ShortcutsModal from "./ShortcutsModal";
+import { getUserApiToken } from "../actions/user";
 
 interface NavigationProps {
   user?: {
@@ -63,7 +65,25 @@ export default function Navigation({ user }: NavigationProps) {
   const pathname = usePathname();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isDark, setIsDark] = useState(false);
+  const [isShortcutsModalOpen, setIsShortcutsModalOpen] = useState(false);
+  const [tokenCopied, setTokenCopied] = useState(false);
+  const [isCopyingToken, setIsCopyingToken] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+
+  const handleCopyToken = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setIsCopyingToken(true);
+    try {
+      const token = await getUserApiToken();
+      await navigator.clipboard.writeText(token);
+      setTokenCopied(true);
+      setTimeout(() => setTokenCopied(false), 2500);
+    } catch (err) {
+      console.error("Error al copiar token:", err);
+    } finally {
+      setIsCopyingToken(false);
+    }
+  };
 
   // Sincronizar estado inicial de tema en el cliente
   useEffect(() => {
@@ -251,6 +271,68 @@ export default function Navigation({ user }: NavigationProps) {
                       </div>
                     </button>
 
+                    {/* Botón Copiar Token de Atajos */}
+                    <div className="flex items-center gap-1">
+                      <button
+                        type="button"
+                        onClick={handleCopyToken}
+                        disabled={isCopyingToken}
+                        className="flex-1 flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-slate-50 transition-colors text-left cursor-pointer group"
+                      >
+                        <div className="flex items-center gap-2.5">
+                          <div
+                            className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors ${
+                              tokenCopied
+                                ? "bg-emerald-50 text-emerald-600"
+                                : "bg-blue-50 text-blue-600 group-hover:bg-blue-100"
+                            }`}
+                          >
+                            {tokenCopied ? (
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+                              </svg>
+                            ) : (
+                              <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                                <path strokeLinecap="round" strokeLinejoin="round" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z" />
+                              </svg>
+                            )}
+                          </div>
+                          <div>
+                            <p className={`text-xs font-semibold ${tokenCopied ? "text-emerald-600 font-bold" : "text-slate-800"}`}>
+                              {tokenCopied ? "¡Copiado al portapapeles!" : "Copiar Token"}
+                            </p>
+                            <p className="text-[10px] text-slate-400">
+                              {tokenCopied ? "Pégalo en tu atajo" : "Para atajos de iPhone"}
+                            </p>
+                          </div>
+                        </div>
+                        <span
+                          className={`text-[10px] font-bold px-2 py-0.5 rounded-md transition-colors ${
+                            tokenCopied
+                              ? "bg-emerald-100 text-emerald-700"
+                              : "bg-blue-50 text-blue-600 group-hover:bg-blue-100"
+                          }`}
+                        >
+                          {tokenCopied ? "✓" : "Copiar"}
+                        </span>
+                      </button>
+
+                      {/* Botón info para ver Guía y URLs */}
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setIsShortcutsModalOpen(true);
+                          setIsMenuOpen(false);
+                        }}
+                        title="Ver URLs y configuración"
+                        className="p-2 rounded-xl text-slate-400 hover:text-slate-600 hover:bg-slate-50 transition-colors"
+                      >
+                        <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                      </button>
+                    </div>
+
                     <div className="h-px bg-gray-100 my-1" />
 
                     {/* Botón Cerrar Sesión */}
@@ -300,6 +382,12 @@ export default function Navigation({ user }: NavigationProps) {
           })}
         </div>
       </nav>
+
+      {/* Modal de configuración de Atajos de iOS */}
+      <ShortcutsModal
+        isOpen={isShortcutsModalOpen}
+        onClose={() => setIsShortcutsModalOpen(false)}
+      />
     </>
   );
 }
