@@ -187,6 +187,7 @@ model CreditCard {
   userId          String
   user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   name            String           // e.g. "Nu", "Banamex", "Préstamo"
+  creditLimit     Float?           @default(0) // Límite de crédito asignado por el banco
   cutoffDay       Int?             // Día de corte del mes (1-31)
   paymentDay      Int?             // Día límite de pago del mes (1-31)
   walletId        String?          @unique

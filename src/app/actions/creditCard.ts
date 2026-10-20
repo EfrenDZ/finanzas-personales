@@ -11,6 +11,7 @@ export async function createCreditCard(formData: FormData) {
 
   const userId = (session.user as any).id;
   const name = (formData.get("name") as string)?.trim();
+  const creditLimitRaw = formData.get("creditLimit") as string;
   const cutoffDayRaw = formData.get("cutoffDay") as string;
   const paymentDayRaw = formData.get("paymentDay") as string;
 
@@ -18,6 +19,7 @@ export async function createCreditCard(formData: FormData) {
     throw new Error("El nombre de la tarjeta o deuda es obligatorio");
   }
 
+  const creditLimit = creditLimitRaw ? parseFloat(creditLimitRaw) : 0;
   const cutoffDay = cutoffDayRaw ? parseInt(cutoffDayRaw, 10) : null;
   const paymentDay = paymentDayRaw ? parseInt(paymentDayRaw, 10) : null;
 
@@ -37,11 +39,61 @@ export async function createCreditCard(formData: FormData) {
       data: {
         userId,
         name,
+        creditLimit: isNaN(creditLimit) || creditLimit < 0 ? 0 : creditLimit,
         cutoffDay: cutoffDay && !isNaN(cutoffDay) ? cutoffDay : null,
         paymentDay: paymentDay && !isNaN(paymentDay) ? paymentDay : null,
         walletId: wallet.id,
       },
     });
+  });
+
+  revalidatePath("/");
+  revalidatePath("/cards");
+  revalidatePath("/accounts");
+}
+
+export async function updateCreditCard(formData: FormData) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) throw new Error("No autenticado");
+
+  const userId = (session.user as any).id;
+  const creditCardId = formData.get("creditCardId") as string;
+  const name = (formData.get("name") as string)?.trim();
+  const creditLimitRaw = formData.get("creditLimit") as string;
+  const cutoffDayRaw = formData.get("cutoffDay") as string;
+  const paymentDayRaw = formData.get("paymentDay") as string;
+
+  if (!creditCardId || !name) {
+    throw new Error("Datos inválidos");
+  }
+
+  const creditLimit = creditLimitRaw ? parseFloat(creditLimitRaw) : 0;
+  const cutoffDay = cutoffDayRaw ? parseInt(cutoffDayRaw, 10) : null;
+  const paymentDay = paymentDayRaw ? parseInt(paymentDayRaw, 10) : null;
+
+  const card = await prisma.creditCard.findFirst({
+    where: { id: creditCardId, userId },
+  });
+
+  if (!card) throw new Error("Tarjeta no encontrada o no autorizada");
+
+  await prisma.$transaction(async (tx) => {
+    await tx.creditCard.update({
+      where: { id: creditCardId },
+      data: {
+        name,
+        creditLimit: isNaN(creditLimit) || creditLimit < 0 ? 0 : creditLimit,
+        cutoffDay: cutoffDay && !isNaN(cutoffDay) ? cutoffDay : null,
+        paymentDay: paymentDay && !isNaN(paymentDay) ? paymentDay : null,
+      },
+    });
+
+    if (card.walletId) {
+      await tx.wallet.update({
+        where: { id: card.walletId },
+        data: { name },
+      });
+    }
   });
 
   revalidatePath("/");

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { payCreditPurchaseMonth, deleteCreditPurchase, deleteCreditCard, payCreditCard } from "../actions/creditCard";
+import { payCreditPurchaseMonth, deleteCreditPurchase, deleteCreditCard, payCreditCard, updateCreditCard } from "../actions/creditCard";
 import CreditPurchaseForm from "./CreditPurchaseForm";
 
 export type CreditPurchaseItem = {
@@ -17,6 +17,7 @@ export type CreditPurchaseItem = {
 export type CreditCardWithPurchases = {
   id: string;
   name: string;
+  creditLimit?: number | null;
   cutoffDay: number | null;
   paymentDay: number | null;
   purchases: CreditPurchaseItem[];
@@ -36,7 +37,9 @@ export default function CreditCardsSection({
   const [loadingCardId, setLoadingCardId] = useState<string | null>(null);
   const [selectedCardForPurchase, setSelectedCardForPurchase] = useState<CreditCardWithPurchases | null>(null);
   const [payingCard, setPayingCard] = useState<CreditCardWithPurchases | null>(null);
+  const [editingCard, setEditingCard] = useState<CreditCardWithPurchases | null>(null);
   const [isPaying, setIsPaying] = useState(false);
+  const [isUpdatingCard, setIsUpdatingCard] = useState(false);
 
   // Gran total de gastos corrientes (deuda revolvente en tarjetas)
   const totalRevolvingDebtAll = creditCards.reduce((acc, card) => {
@@ -63,18 +66,40 @@ export default function CreditCardsSection({
     return acc + msiRemaining + cardRevolving;
   }, 0);
 
+  // Totales de líneas de crédito
+  const totalCreditLimitAll = creditCards.reduce((acc, card) => acc + (card.creditLimit || 0), 0);
+  const totalAvailableCreditAll = creditCards.reduce((acc, card) => {
+    const limit = card.creditLimit || 0;
+    if (limit <= 0) return acc;
+    const active = card.purchases.filter((p) => !p.isCompleted);
+    const msiRem = active.reduce((sum, p) => sum + (Math.max(0, p.totalMonths - p.paidMonths) * p.monthlyPayment), 0);
+    const cardRev = card.wallet ? Math.max(0, -card.wallet.balance) : 0;
+    return acc + Math.max(0, limit - (msiRem + cardRev));
+  }, 0);
+
   return (
     <section className="mb-10">
       {/* Encabezado y Resumen Global */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 mb-4">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-3 mb-6">
         <div>
-          <h2 className="text-xl font-bold text-slate-800"> Tarjetas de Crédito y Meses Sin Intereses</h2>
+          <h2 className="text-xl font-bold text-slate-800">Tarjetas de Crédito y Meses Sin Intereses</h2>
           <p className="text-xs text-slate-500">
-            Control de compras a plazos y pagos requeridos del mes.
+            Control de límites de crédito, compras a plazos y pagos requeridos del mes.
           </p>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex flex-wrap items-center gap-2">
+          {totalCreditLimitAll > 0 && (
+            <div className="bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl text-right">
+              <span className="text-[10px] font-bold text-emerald-700 block uppercase tracking-wider">
+                Crédito Disponible
+              </span>
+              <span className="text-base font-black text-emerald-900">
+                ${Math.ceil(totalAvailableCreditAll).toLocaleString("es-MX")}
+              </span>
+            </div>
+          )}
+
           <div className="bg-purple-50 border border-purple-200 px-3 py-1.5 rounded-xl text-right">
             <span className="text-[10px] font-bold text-purple-700 block uppercase tracking-wider">
               Total a Pagar este Mes
@@ -118,6 +143,10 @@ export default function CreditCardsSection({
             const rem = Math.max(0, p.totalMonths - p.paidMonths);
             return sum + rem * p.monthlyPayment;
           }, 0) + cardRevolvingDebt;
+
+          const creditLimit = card.creditLimit || 0;
+          const availableCredit = creditLimit > 0 ? Math.max(0, creditLimit - cardTotalRemaining) : 0;
+          const utilizationPercent = creditLimit > 0 ? Math.min(100, Math.round((cardTotalRemaining / creditLimit) * 100)) : 0;
 
           return (
             <div
@@ -164,6 +193,60 @@ export default function CreditCardsSection({
                     Deuda total: ${Math.ceil(cardTotalRemaining).toLocaleString("es-MX")}
                   </span>
                 </div>
+              </div>
+
+              {/* Barra de Línea de Crédito y Disponible */}
+              <div className="p-4 bg-slate-50 border-b border-gray-100">
+                <div className="flex justify-between items-center mb-1.5 text-xs">
+                  <div>
+                    <span className="text-slate-500 font-medium">Crédito Disponible: </span>
+                    <span className={`font-extrabold ${creditLimit > 0 && availableCredit > 0 ? "text-emerald-700" : "text-rose-600"}`}>
+                      {creditLimit > 0 ? `$${Math.ceil(availableCredit).toLocaleString("es-MX")}` : "Sin límite configurado"}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <span className="text-slate-400">Límite:</span>
+                    <span className="font-bold text-slate-800">
+                      {creditLimit > 0 ? `$${creditLimit.toLocaleString("es-MX")}` : "No definido"}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => setEditingCard(card)}
+                      className="text-[10px] text-blue-600 hover:text-blue-800 underline font-semibold ml-0.5 cursor-pointer"
+                    >
+                      {creditLimit > 0 ? "Editar" : "+ Configurar"}
+                    </button>
+                  </div>
+                </div>
+
+                {creditLimit > 0 ? (
+                  <div>
+                    <div className="w-full bg-slate-200 rounded-full h-2.5 overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-300 ${
+                          utilizationPercent <= 30
+                            ? "bg-emerald-500"
+                            : utilizationPercent <= 60
+                            ? "bg-amber-500"
+                            : "bg-rose-500"
+                        }`}
+                        style={{ width: `${utilizationPercent}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between items-center mt-1 text-[10px]">
+                      <span className="text-slate-500">
+                        Uso de línea: <strong className={utilizationPercent <= 30 ? "text-emerald-700" : utilizationPercent <= 60 ? "text-amber-700" : "text-rose-700"}>{utilizationPercent}%</strong> {utilizationPercent <= 30 ? "(Saludable)" : utilizationPercent <= 60 ? "(Moderado)" : "(Alto uso)"}
+                      </span>
+                      <span className="text-slate-400">
+                        Comprometido: ${Math.ceil(cardTotalRemaining).toLocaleString("es-MX")}
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-slate-400 mt-0.5">
+                    Haz clic en <button type="button" onClick={() => setEditingCard(card)} className="text-blue-600 underline font-bold cursor-pointer">+ Configurar</button> para ingresar tu límite y ver cuánto crédito te queda disponible.
+                  </p>
+                )}
               </div>
 
               {/* Lista de Compras dentro de la tarjeta */}
@@ -308,6 +391,15 @@ export default function CreditCardsSection({
                     title="Transferir desde una cuenta de débito para abonar o liquidar"
                   >
                     💳 Pagar Tarjeta
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setEditingCard(card)}
+                    className="bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold px-2.5 py-2 rounded-xl transition-all shadow-sm active:scale-95 text-xs cursor-pointer"
+                    title="Editar límite de crédito o fechas de corte"
+                  >
+                    ⚙
                   </button>
                 </div>
 
@@ -461,6 +553,113 @@ export default function CreditCardsSection({
                 </button>
               </form>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* Modal para Editar Tarjeta / Configurar Límite de Crédito */}
+      {editingCard && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl relative animate-in fade-in zoom-in duration-200">
+            <button
+              onClick={() => setEditingCard(null)}
+              className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 p-2 text-xl leading-none cursor-pointer"
+            >
+              ✕
+            </button>
+            <h3 className="text-xl font-bold text-slate-900 mb-1">
+              Configurar {editingCard.name}
+            </h3>
+            <p className="text-xs text-slate-500 mb-6">
+              Modifica el límite de crédito, fechas de corte o nombre de tu tarjeta.
+            </p>
+
+            <form
+              action={async (formData) => {
+                setIsUpdatingCard(true);
+                try {
+                  await updateCreditCard(formData);
+                  setEditingCard(null);
+                } catch (err: any) {
+                  alert(err?.message || "Ocurrió un error al actualizar la tarjeta.");
+                } finally {
+                  setIsUpdatingCard(false);
+                }
+              }}
+              className="space-y-4"
+            >
+              <input type="hidden" name="creditCardId" value={editingCard.id} />
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Nombre de la Tarjeta:
+                </label>
+                <input
+                  type="text"
+                  name="name"
+                  required
+                  defaultValue={editingCard.name}
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl text-slate-900 outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm"
+                />
+              </div>
+
+              <div>
+                <label className="block text-xs font-bold text-slate-700 mb-1">
+                  Límite de Crédito Total ($):
+                </label>
+                <input
+                  type="number"
+                  step="0.01"
+                  min="0"
+                  name="creditLimit"
+                  defaultValue={editingCard.creditLimit || ""}
+                  placeholder="Ej. 20000"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl text-slate-900 font-bold outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                />
+                <p className="text-[11px] text-slate-400 mt-1">
+                  La línea de crédito total autorizada por tu banco.
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Día de Corte:
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="31"
+                    name="cutoffDay"
+                    defaultValue={editingCard.cutoffDay || ""}
+                    placeholder="Ej. 15"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl text-slate-900 outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Día Límite de Pago:
+                  </label>
+                  <input
+                    type="number"
+                    min="1"
+                    max="31"
+                    name="paymentDay"
+                    defaultValue={editingCard.paymentDay || ""}
+                    placeholder="Ej. 5"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-xl text-slate-900 outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm"
+                  />
+                </div>
+              </div>
+
+              <button
+                type="submit"
+                disabled={isUpdatingCard}
+                className="w-full bg-slate-900 hover:bg-slate-800 text-white font-bold py-3.5 px-6 rounded-xl transition-all shadow-md active:scale-95 disabled:opacity-50 text-sm cursor-pointer mt-3"
+              >
+                {isUpdatingCard ? "Guardando..." : "Guardar Cambios"}
+              </button>
+            </form>
           </div>
         </div>
       )}

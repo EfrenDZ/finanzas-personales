@@ -49,6 +49,21 @@ export default function CreditCardForm({
         />
       </div>
 
+      <div>
+        <label className="block text-sm font-medium text-slate-700 mb-1">
+          Límite de Crédito Total ($)
+        </label>
+        <input
+          type="number"
+          name="creditLimit"
+          step="0.01"
+          min="0"
+          placeholder="Ej. 20000"
+          className="w-full px-4 py-3 border border-gray-300 rounded-xl text-slate-900 placeholder-slate-400 outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+        />
+        <p className="text-[11px] text-slate-400 mt-1">Línea de crédito autorizada por el banco.</p>
+      </div>
+
       <div className="grid grid-cols-2 gap-3">
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">

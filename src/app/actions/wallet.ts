@@ -16,6 +16,8 @@ export async function createWallet(formData: FormData) {
   const rawType = (formData.get("type") as string) || "DEBIT";
   const type = ["DEBIT", "CREDIT", "CASH"].includes(rawType) ? (rawType as "DEBIT" | "CREDIT" | "CASH") : "DEBIT";
 
+  const creditLimitRaw = formData.get("creditLimit") as string;
+  const creditLimit = creditLimitRaw ? parseFloat(creditLimitRaw) : 0;
   const cutoffDayRaw = formData.get("cutoffDay") as string;
   const paymentDayRaw = formData.get("paymentDay") as string;
   const cutoffDay = cutoffDayRaw ? parseInt(cutoffDayRaw, 10) : null;
@@ -39,6 +41,7 @@ export async function createWallet(formData: FormData) {
         data: {
           userId,
           name,
+          creditLimit: isNaN(creditLimit) || creditLimit < 0 ? 0 : creditLimit,
           cutoffDay: cutoffDay && !isNaN(cutoffDay) ? cutoffDay : null,
           paymentDay: paymentDay && !isNaN(paymentDay) ? paymentDay : null,
           walletId: wallet.id,
