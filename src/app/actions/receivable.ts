@@ -39,6 +39,12 @@ function advanceAccrualDate(
 export async function getAccruedReceivables(userId: string) {
   const receivables = await prisma.receivable.findMany({
     where: { userId },
+    include: {
+      movements: {
+        include: { wallet: true },
+        orderBy: { date: "desc" },
+      },
+    },
     orderBy: { createdAt: "desc" },
   });
 
@@ -62,11 +68,27 @@ export async function getAccruedReceivables(userId: string) {
 
         if (addedCount > 0) {
           const addedAmount = addedCount * rec.recurringAmount;
+          await prisma.receivableTransaction.create({
+            data: {
+              receivableId: rec.id,
+              amount: addedAmount,
+              type: "ACCRUAL",
+              notes: `Aumento programado (${addedCount} corte${addedCount > 1 ? "s" : ""})`,
+              date: now,
+            },
+          });
+
           return await prisma.receivable.update({
             where: { id: rec.id },
             data: {
               currentBalance: { increment: addedAmount },
               nextAccrualDate: nextDate,
+            },
+            include: {
+              movements: {
+                include: { wallet: true },
+                orderBy: { date: "desc" },
+              },
             },
           });
         }
@@ -83,7 +105,8 @@ export async function createReceivable(formData: FormData) {
   const session = await getServerSession(authOptions);
   if (!session?.user) throw new Error("No autenticado");
 
-  const userId = (session.user as any).id;
+  const user = session.user as { id: string };
+  const userId = user.id;
   const debtorName = (formData.get("debtorName") as string)?.trim();
   const initialBalance = parseFloat(formData.get("initialBalance") as string) || 0;
   const recurringAmount = parseFloat(formData.get("recurringAmount") as string) || 0;
@@ -110,7 +133,7 @@ export async function createReceivable(formData: FormData) {
     anchorDay = parts.day;
   }
 
-  await prisma.receivable.create({
+  const newRec = await prisma.receivable.create({
     data: {
       userId,
       debtorName,
@@ -124,7 +147,19 @@ export async function createReceivable(formData: FormData) {
     },
   });
 
+  if (initialBalance > 0) {
+    await prisma.receivableTransaction.create({
+      data: {
+        receivableId: newRec.id,
+        amount: initialBalance,
+        type: "CHARGE",
+        notes: "Saldo inicial de deuda",
+      },
+    });
+  }
+
   revalidatePath("/");
+  revalidatePath("/accounts");
 }
 
 // Forzar o adelantar la suma del corte ahora
@@ -143,15 +178,27 @@ export async function forceAccrueReceivable(formData: FormData) {
     rec.anchorDay
   );
 
-  await prisma.receivable.update({
-    where: { id: receivableId },
-    data: {
-      currentBalance: { increment: rec.recurringAmount },
-      nextAccrualDate: nextDate,
-    },
+  await prisma.$transaction(async (tx) => {
+    await tx.receivable.update({
+      where: { id: receivableId },
+      data: {
+        currentBalance: { increment: rec.recurringAmount },
+        nextAccrualDate: nextDate,
+      },
+    });
+
+    await tx.receivableTransaction.create({
+      data: {
+        receivableId,
+        amount: rec.recurringAmount,
+        type: "ACCRUAL",
+        notes: "Corte manual adelantado",
+      },
+    });
   });
 
   revalidatePath("/");
+  revalidatePath("/accounts");
 }
 
 // Actualizar datos de una cuenta por cobrar
@@ -199,6 +246,7 @@ export async function updateReceivable(formData: FormData) {
   });
 
   revalidatePath("/");
+  revalidatePath("/accounts");
 }
 
 // Registrar un abono (cuando te pagan)
@@ -238,7 +286,7 @@ export async function recordReceivablePayment(formData: FormData) {
       },
     });
 
-    // 3. Registrar la transacción de ingreso en el historial
+    // 3. Registrar la transacción de ingreso en el historial de la cuenta
     await tx.transaction.create({
       data: {
         walletId,
@@ -247,9 +295,21 @@ export async function recordReceivablePayment(formData: FormData) {
         description: notes || `Abono recibido de ${receivable.debtorName}`,
       },
     });
+
+    // 4. Registrar en el historial de la cuenta por cobrar
+    await tx.receivableTransaction.create({
+      data: {
+        receivableId,
+        walletId,
+        amount,
+        type: "PAYMENT",
+        notes: notes || `Abono recibido`,
+      },
+    });
   });
 
   revalidatePath("/");
+  revalidatePath("/accounts");
 }
 
 // Ajuste manual (ej. te pidieron prestado más o sumaron cargo)
@@ -259,19 +319,32 @@ export async function adjustReceivableDebt(formData: FormData) {
 
   const receivableId = formData.get("receivableId") as string;
   const amount = parseFloat(formData.get("amount") as string);
+  const notes = (formData.get("notes") as string)?.trim() || "Aumento manual de deuda";
 
   if (!receivableId || !amount || amount <= 0) {
     throw new Error("Monto inválido");
   }
 
-  await prisma.receivable.update({
-    where: { id: receivableId },
-    data: {
-      currentBalance: { increment: amount },
-    },
+  await prisma.$transaction(async (tx) => {
+    await tx.receivable.update({
+      where: { id: receivableId },
+      data: {
+        currentBalance: { increment: amount },
+      },
+    });
+
+    await tx.receivableTransaction.create({
+      data: {
+        receivableId,
+        amount,
+        type: "CHARGE",
+        notes,
+      },
+    });
   });
 
   revalidatePath("/");
+  revalidatePath("/accounts");
 }
 
 // Eliminar cuenta por cobrar
@@ -279,12 +352,23 @@ export async function deleteReceivable(formData: FormData) {
   const session = await getServerSession(authOptions);
   if (!session?.user) throw new Error("No autenticado");
 
+  const user = session.user as { id: string };
+  const userId = user.id;
   const receivableId = formData.get("receivableId") as string;
   if (!receivableId) throw new Error("ID inválido");
+
+  const rec = await prisma.receivable.findFirst({
+    where: { id: receivableId, userId },
+  });
+
+  if (!rec) {
+    throw new Error("Cuenta por cobrar no encontrada o no autorizada");
+  }
 
   await prisma.receivable.delete({
     where: { id: receivableId },
   });
 
   revalidatePath("/");
+  revalidatePath("/accounts");
 }

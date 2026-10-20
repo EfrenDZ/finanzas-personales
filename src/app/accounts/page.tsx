@@ -17,13 +17,26 @@ export default async function AccountsPage() {
   const user = session.user as { id: string; username?: string; name?: string };
   const userId = user.id;
 
-  const [wallets, receivables] = await Promise.all([
+  const [wallets, receivables, transactions] = await Promise.all([
     prisma.wallet.findMany({
       where: { userId },
       orderBy: { createdAt: "desc" },
     }),
     getAccruedReceivables(userId),
+    prisma.transaction.findMany({
+      where: { wallet: { userId } },
+      include: {
+        category: true,
+        wallet: true,
+      },
+      orderBy: { date: "desc" },
+    }),
   ]);
+
+  const walletMap: Record<string, string> = {};
+  wallets.forEach((w) => {
+    walletMap[w.id] = w.name;
+  });
 
   const totalBalance = wallets.reduce((acc, w) => acc + w.balance, 0);
   const totalReceivable = receivables.reduce((acc, r) => acc + r.currentBalance, 0);
@@ -71,7 +84,7 @@ export default async function AccountsPage() {
       </div>
 
       {/* Grid de Cuentas Físicas con opción de Ajuste */}
-      <WalletsSection wallets={wallets} />
+      <WalletsSection wallets={wallets} transactions={transactions} walletMap={walletMap} />
 
 
       {/* Cuentas por Cobrar */}

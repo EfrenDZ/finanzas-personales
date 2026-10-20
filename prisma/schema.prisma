@@ -33,8 +33,9 @@ model Wallet {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  transactions Transaction[]
-  sinkingFunds SinkingFund[]
+  transactions           Transaction[]
+  sinkingFunds           SinkingFund[]
+  receivableTransactions ReceivableTransaction[]
 }
 
 model Category {
@@ -93,6 +94,27 @@ model Receivable {
   notes           String?
   createdAt       DateTime @default(now())
   updatedAt       DateTime @updatedAt
+
+  movements       ReceivableTransaction[]
+}
+
+model ReceivableTransaction {
+  id           String                    @id @default(uuid())
+  receivableId String
+  receivable   Receivable                @relation(fields: [receivableId], references: [id], onDelete: Cascade)
+  walletId     String?
+  wallet       Wallet?                   @relation(fields: [walletId], references: [id], onDelete: SetNull)
+  amount       Float
+  type         ReceivableTransactionType
+  notes        String?
+  date         DateTime                  @default(now())
+  createdAt    DateTime                  @default(now())
+}
+
+enum ReceivableTransactionType {
+  PAYMENT
+  CHARGE
+  ACCRUAL
 }
 
 enum SinkingFundCycleType {
