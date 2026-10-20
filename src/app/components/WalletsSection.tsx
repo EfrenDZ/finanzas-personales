@@ -2,13 +2,14 @@
 
 import { useState } from "react";
 import AdjustBalanceModal from "./AdjustBalanceModal";
-import { updateWallet, deleteWallet } from "../actions/wallet";
+import { updateWallet, deleteWallet, setDefaultWallet } from "../actions/wallet";
 import { formatDateDisplay } from "@/lib/date";
 
 export interface Wallet {
   id: string;
   name: string;
   balance: number;
+  isDefault?: boolean;
 }
 
 export type WalletTransaction = {
@@ -54,6 +55,26 @@ export default function WalletsSection({
                 <h3 className="text-gray-400 text-xs font-bold uppercase tracking-wider">
                   {wallet.name}
                 </h3>
+                {wallet.isDefault ? (
+                  <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 bg-amber-50 border border-amber-200/60 px-2 py-0.5 rounded-lg">
+                    ★ Predeterminada
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      try {
+                        await setDefaultWallet(wallet.id);
+                      } catch (err) {
+                        console.error("Error al marcar predeterminada:", err);
+                      }
+                    }}
+                    className="text-[11px] font-medium text-slate-400 hover:text-amber-600 hover:bg-amber-50 px-2 py-0.5 rounded-lg border border-transparent hover:border-amber-200 transition-all flex items-center gap-1 cursor-pointer"
+                    title="Usar como cuenta predeterminada para Atajos de iPhone"
+                  >
+                    <span>☆</span> Hacer predeterminada
+                  </button>
+                )}
               </div>
               <p className="text-2xl sm:text-3xl font-bold text-slate-800">
                 ${wallet.balance.toFixed(2)}

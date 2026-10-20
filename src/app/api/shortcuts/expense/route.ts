@@ -23,45 +23,51 @@ export async function POST(request: Request) {
       );
     }
 
-    // Admite campos tanto en español como en inglés
-    const rawAmount = body.amount ?? body.monto;
-    const amount = typeof rawAmount === "string" ? parseFloat(rawAmount) : Number(rawAmount);
+    // Normalizar objeto y permitir envoltorios
+    const payload = (body.data && typeof body.data === "object" ? body.data : body) as Record<string, unknown>;
+
+    // Buscar campos ignorando mayúsculas/minúsculas
+    const getField = (keys: string[]): unknown => {
+      const lowerKeys = keys.map((k) => k.toLowerCase());
+      for (const [key, value] of Object.entries(payload)) {
+        if (lowerKeys.includes(key.toLowerCase()) && value !== undefined && value !== null && value !== "") {
+          return value;
+        }
+      }
+      return undefined;
+    };
+
+    // Obtener y sanitizar el monto (elimina $, espacios y convierte comas decimales)
+    const rawAmount = getField(["amount", "monto", "cantidad", "total", "precio", "valor", "costo"]);
+    let amount = 0;
+    if (typeof rawAmount === "number") {
+      amount = rawAmount;
+    } else if (typeof rawAmount === "string") {
+      const sanitized = rawAmount.replace(/[^0-9.,-]/g, "").trim().replace(",", ".");
+      amount = parseFloat(sanitized);
+    }
 
     if (isNaN(amount) || amount <= 0) {
+      const receivedKeys = Object.keys(payload).join(", ") || "ninguno";
       return NextResponse.json(
-        { success: false, error: "El monto ('amount' o 'monto') es requerido y debe ser mayor a 0" },
+        {
+          success: false,
+          error: `El monto debe ser un número mayor a 0. Recibido: ${JSON.stringify(payload)} (claves: [${receivedKeys}])`,
+        },
         { status: 400 }
       );
     }
 
-    const description = (
-      body.description ??
-      body.descripcion ??
-      body.concepto ??
-      "Gasto rápido"
-    )
-      .toString()
-      .trim();
+    const rawDescription = getField(["description", "descripcion", "concepto", "detalle", "nota", "notas"]);
+    const description = (rawDescription ?? "Gasto rápido").toString().trim();
 
-    const walletQuery = (
-      body.wallet ??
-      body.cuenta ??
-      body.walletName ??
-      body.walletId
-    )
-      ?.toString()
-      .trim();
+    const rawWallet = getField(["wallet", "cuenta", "billetera", "walletname", "walletid"]);
+    const walletQuery = rawWallet?.toString().trim();
 
-    const categoryQuery = (
-      body.category ??
-      body.categoria ??
-      body.categoryName ??
-      body.categoryId
-    )
-      ?.toString()
-      .trim();
+    const rawCategory = getField(["category", "categoria", "categoryname", "categoryid"]);
+    const categoryQuery = rawCategory?.toString().trim();
 
-    const rawDate = body.date ?? body.fecha;
+    const rawDate = getField(["date", "fecha"]);
     const txDate = rawDate ? parseDateInput(String(rawDate)) : new Date();
 
     // 1. Obtener la cuenta (wallet)
@@ -73,6 +79,7 @@ export async function POST(request: Request) {
           OR: [
             { id: walletQuery },
             { name: { equals: walletQuery, mode: "insensitive" } },
+            { name: { contains: walletQuery, mode: "insensitive" } },
           ],
         },
       });
@@ -92,11 +99,18 @@ export async function POST(request: Request) {
         );
       }
     } else {
-      // Default a la primera cuenta registrada
+      // Buscar primero la cuenta marcada como predeterminada
       wallet = await prisma.wallet.findFirst({
-        where: { userId: user.id },
-        orderBy: { createdAt: "asc" },
+        where: { userId: user.id, isDefault: true },
       });
+
+      // Si ninguna está marcada, tomar la primera registrada
+      if (!wallet) {
+        wallet = await prisma.wallet.findFirst({
+          where: { userId: user.id },
+          orderBy: { createdAt: "asc" },
+        });
+      }
 
       if (!wallet) {
         return NextResponse.json(

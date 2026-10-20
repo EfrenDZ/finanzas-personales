@@ -179,3 +179,31 @@ export async function deleteWallet(formData: FormData) {
   revalidatePath("/accounts");
 }
 
+export async function setDefaultWallet(walletId: string) {
+  const session = await getServerSession(authOptions);
+  if (!session?.user) throw new Error("No autenticado");
+
+  const userId = (session.user as { id: string }).id;
+
+  if (!walletId) {
+    throw new Error("ID de cuenta inválido");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    // 1. Quitar predeterminada de todas las demás cuentas del usuario
+    await tx.wallet.updateMany({
+      where: { userId },
+      data: { isDefault: false },
+    });
+
+    // 2. Establecer esta como predeterminada
+    await tx.wallet.update({
+      where: { id: walletId, userId },
+      data: { isDefault: true },
+    });
+  });
+
+  revalidatePath("/");
+  revalidatePath("/accounts");
+}
+

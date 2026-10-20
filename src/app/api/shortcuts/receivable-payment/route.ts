@@ -22,16 +22,20 @@ export async function POST(request: Request) {
       );
     }
 
-    const debtorQuery = (
-      body.debtorName ??
-      body.debtor ??
-      body.deudor ??
-      body.receivableId ??
-      body.receivable ??
-      body.nombre
-    )
-      ?.toString()
-      .trim();
+    const payload = (body.data && typeof body.data === "object" ? body.data : body) as Record<string, unknown>;
+
+    const getField = (keys: string[]): unknown => {
+      const lowerKeys = keys.map((k) => k.toLowerCase());
+      for (const [key, value] of Object.entries(payload)) {
+        if (lowerKeys.includes(key.toLowerCase()) && value !== undefined && value !== null && value !== "") {
+          return value;
+        }
+      }
+      return undefined;
+    };
+
+    const rawDebtor = getField(["debtorname", "debtor", "deudor", "receivableid", "receivable", "nombre", "persona"]);
+    const debtorQuery = rawDebtor?.toString().trim();
 
     if (!debtorQuery) {
       return NextResponse.json(
@@ -43,33 +47,31 @@ export async function POST(request: Request) {
       );
     }
 
-    const rawAmount = body.amount ?? body.monto;
-    const amount = typeof rawAmount === "string" ? parseFloat(rawAmount) : Number(rawAmount);
+    const rawAmount = getField(["amount", "monto", "cantidad", "total", "abono", "pago"]);
+    let amount = 0;
+    if (typeof rawAmount === "number") {
+      amount = rawAmount;
+    } else if (typeof rawAmount === "string") {
+      const sanitized = rawAmount.replace(/[^0-9.,-]/g, "").trim().replace(",", ".");
+      amount = parseFloat(sanitized);
+    }
 
     if (isNaN(amount) || amount <= 0) {
+      const receivedKeys = Object.keys(payload).join(", ") || "ninguno";
       return NextResponse.json(
-        { success: false, error: "El monto ('amount' o 'monto') es requerido y debe ser mayor a 0" },
+        {
+          success: false,
+          error: `El monto del abono debe ser mayor a 0. Recibido: ${JSON.stringify(payload)} (claves: [${receivedKeys}])`,
+        },
         { status: 400 }
       );
     }
 
-    const walletQuery = (
-      body.wallet ??
-      body.cuenta ??
-      body.walletName ??
-      body.walletId
-    )
-      ?.toString()
-      .trim();
+    const rawWallet = getField(["wallet", "cuenta", "billetera", "walletname", "walletid"]);
+    const walletQuery = rawWallet?.toString().trim();
 
-    const notes = (
-      body.notes ??
-      body.descripcion ??
-      body.description ??
-      body.concepto
-    )
-      ?.toString()
-      .trim();
+    const rawNotes = getField(["notes", "descripcion", "description", "concepto", "nota"]);
+    const notes = rawNotes?.toString().trim();
 
     // 1. Buscar la cuenta por cobrar
     const receivable = await prisma.receivable.findFirst({

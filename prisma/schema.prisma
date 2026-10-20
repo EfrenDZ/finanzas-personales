@@ -31,6 +31,7 @@ model Wallet {
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   name      String   // e.g. "Efectivo", "BBVA"
   balance   Float    @default(0) // Updated via transactions
+  isDefault Boolean  @default(false)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
