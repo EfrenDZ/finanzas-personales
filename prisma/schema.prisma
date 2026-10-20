@@ -25,19 +25,28 @@ model User {
   categories    Category[]
 }
 
+enum WalletType {
+  DEBIT
+  CREDIT
+  CASH
+}
+
 model Wallet {
-  id        String   @id @default(uuid())
+  id        String     @id @default(uuid())
   userId    String
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  name      String   // e.g. "Efectivo", "BBVA"
-  balance   Float    @default(0) // Updated via transactions
-  isDefault Boolean  @default(false)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String     // e.g. "Efectivo", "BBVA"
+  balance   Float      @default(0) // Updated via transactions
+  type      WalletType @default(DEBIT)
+  isDefault Boolean    @default(false)
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 
   transactions           Transaction[]
   sinkingFunds           SinkingFund[]
   receivableTransactions ReceivableTransaction[]
+
+  creditCard             CreditCard?
 }
 
 model Category {
@@ -180,6 +189,8 @@ model CreditCard {
   name            String           // e.g. "Nu", "Banamex", "Préstamo"
   cutoffDay       Int?             // Día de corte del mes (1-31)
   paymentDay      Int?             // Día límite de pago del mes (1-31)
+  walletId        String?          @unique
+  wallet          Wallet?          @relation(fields: [walletId], references: [id], onDelete: Cascade)
   purchases       CreditPurchase[]
   createdAt       DateTime         @default(now())
   updatedAt       DateTime         @updatedAt

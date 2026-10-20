@@ -13,6 +13,13 @@ export async function createWallet(formData: FormData) {
   const userId = user.id;
   const name = formData.get("name") as string;
   const initialBalance = parseFloat(formData.get("initialBalance") as string) || 0;
+  const rawType = (formData.get("type") as string) || "DEBIT";
+  const type = ["DEBIT", "CREDIT", "CASH"].includes(rawType) ? (rawType as "DEBIT" | "CREDIT" | "CASH") : "DEBIT";
+
+  const cutoffDayRaw = formData.get("cutoffDay") as string;
+  const paymentDayRaw = formData.get("paymentDay") as string;
+  const cutoffDay = cutoffDayRaw ? parseInt(cutoffDayRaw, 10) : null;
+  const paymentDay = paymentDayRaw ? parseInt(paymentDayRaw, 10) : null;
 
   if (!name) throw new Error("El nombre es requerido");
 
@@ -22,17 +29,30 @@ export async function createWallet(formData: FormData) {
       data: {
         userId,
         name,
-        balance: initialBalance,
+        balance: type === "CREDIT" ? -Math.abs(initialBalance) : initialBalance,
+        type,
       },
     });
+
+    if (type === "CREDIT") {
+      await tx.creditCard.create({
+        data: {
+          userId,
+          name,
+          cutoffDay: cutoffDay && !isNaN(cutoffDay) ? cutoffDay : null,
+          paymentDay: paymentDay && !isNaN(paymentDay) ? paymentDay : null,
+          walletId: wallet.id,
+        },
+      });
+    }
 
     if (initialBalance > 0) {
       await tx.transaction.create({
         data: {
           walletId: wallet.id,
-          amount: initialBalance,
-          type: "INCOME",
-          description: "Saldo inicial",
+          amount: type === "CREDIT" ? -Math.abs(initialBalance) : initialBalance,
+          type: type === "CREDIT" ? "EXPENSE" : "INCOME",
+          description: type === "CREDIT" ? "Saldo deudor inicial" : "Saldo inicial",
         },
       });
     }
@@ -41,6 +61,7 @@ export async function createWallet(formData: FormData) {
   // Refresca la interfaz automáticamente
   revalidatePath("/");
   revalidatePath("/accounts");
+  revalidatePath("/cards");
 }
 
 export async function adjustWalletBalance(formData: FormData) {
@@ -117,13 +138,22 @@ export async function updateWallet(formData: FormData) {
     throw new Error("Cuenta no encontrada o no autorizada");
   }
 
-  await prisma.wallet.update({
-    where: { id: walletId },
-    data: { name },
+  await prisma.$transaction(async (tx) => {
+    await tx.wallet.update({
+      where: { id: walletId },
+      data: { name },
+    });
+
+    // Si tiene tarjeta vinculada, sincronizar su nombre
+    await tx.creditCard.updateMany({
+      where: { walletId },
+      data: { name },
+    });
   });
 
   revalidatePath("/");
   revalidatePath("/accounts");
+  revalidatePath("/cards");
 }
 
 export async function deleteWallet(formData: FormData) {
@@ -147,7 +177,12 @@ export async function deleteWallet(formData: FormData) {
   }
 
   await prisma.$transaction(async (tx) => {
-    // 1. Eliminar transacciones donde esta cuenta sea origen o destino
+    // 1. Eliminar tarjeta vinculada si existe (esto limpiará compras a crédito)
+    await tx.creditCard.deleteMany({
+      where: { walletId },
+    });
+
+    // 2. Eliminar transacciones donde esta cuenta sea origen o destino
     await tx.transaction.deleteMany({
       where: {
         OR: [
@@ -157,19 +192,19 @@ export async function deleteWallet(formData: FormData) {
       },
     });
 
-    // 2. Desvincular de apartados (sinking funds)
+    // 3. Desvincular de apartados (sinking funds)
     await tx.sinkingFund.updateMany({
       where: { defaultWalletId: walletId },
       data: { defaultWalletId: null },
     });
 
-    // 3. Desvincular de movimientos de cuentas por cobrar
+    // 4. Desvincular de movimientos de cuentas por cobrar
     await tx.receivableTransaction.updateMany({
       where: { walletId },
       data: { walletId: null },
     });
 
-    // 4. Eliminar la cuenta
+    // 5. Eliminar la cuenta
     await tx.wallet.delete({
       where: { id: walletId },
     });
@@ -177,6 +212,7 @@ export async function deleteWallet(formData: FormData) {
 
   revalidatePath("/");
   revalidatePath("/accounts");
+  revalidatePath("/cards");
 }
 
 export async function setDefaultWallet(walletId: string) {

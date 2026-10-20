@@ -9,7 +9,7 @@ import BudgetForm from "./BudgetForm";
 import CreditCardForm from "./CreditCardForm";
 import CreditPurchaseForm from "./CreditPurchaseForm";
 
-type Wallet = { id: string; name: string; balance: number };
+type Wallet = { id: string; name: string; balance: number; type?: "DEBIT" | "CREDIT" | "CASH" };
 type Category = { id: string; name: string; type: string };
 type CreditCardItem = { id: string; name: string };
 

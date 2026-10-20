@@ -15,15 +15,22 @@ export default async function CardsPage() {
   const user = session.user as { id: string; username?: string; name?: string };
   const userId = user.id;
 
-  const creditCards = await prisma.creditCard.findMany({
-    where: { userId },
-    include: {
-      purchases: {
-        orderBy: { createdAt: "desc" },
+  const [creditCards, liquidWallets] = await Promise.all([
+    prisma.creditCard.findMany({
+      where: { userId },
+      include: {
+        wallet: true,
+        purchases: {
+          orderBy: { createdAt: "desc" },
+        },
       },
-    },
-    orderBy: { createdAt: "asc" },
-  });
+      orderBy: { createdAt: "asc" },
+    }),
+    prisma.wallet.findMany({
+      where: { userId, type: { not: "CREDIT" } },
+      orderBy: { name: "asc" },
+    }),
+  ]);
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
@@ -34,7 +41,7 @@ export default async function CardsPage() {
             Tarjetas de Crédito
           </h1>
           <p className="text-sm text-slate-500 font-medium mt-1">
-            Monitorea tus compras a meses sin intereses, fechas de corte y pagos requeridos.
+            Monitorea tus gastos corrientes, compras a meses sin intereses, fechas de corte y pagos requeridos.
           </p>
         </div>
         <CardActions
@@ -42,7 +49,7 @@ export default async function CardsPage() {
         />
       </div>
 
-      <CreditCardsSection creditCards={creditCards} />
+      <CreditCardsSection creditCards={creditCards} liquidWallets={liquidWallets} />
     </div>
   );
 }

@@ -4,8 +4,18 @@ import { useRef, useState } from "react";
 import { createTransaction } from "../actions/transaction";
 import { formatDateToInput } from "@/lib/date";
 
-type Wallet = { id: string; name: string; balance: number };
+type Wallet = { id: string; name: string; balance: number; type?: "DEBIT" | "CREDIT" | "CASH" };
 type Category = { id: string; name: string; type: string };
+
+const formatWalletOption = (w: Wallet) => {
+  if (w.type === "CREDIT") {
+    const debt = -w.balance;
+    const debtLabel = debt > 0 ? `Deuda: $${debt.toFixed(2)}` : debt < 0 ? `Saldo a favor: $${Math.abs(debt).toFixed(2)}` : `$0.00`;
+    return `💳 ${w.name} [Tarjeta de Crédito] (${debtLabel})`;
+  }
+  const icon = w.type === "CASH" ? "💵" : "🏦";
+  return `${icon} ${w.name} ($${w.balance.toFixed(2)})`;
+};
 
 export default function TransactionForm({ 
   wallets, 
@@ -145,30 +155,30 @@ export default function TransactionForm({
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Cuenta Origen (Sale)</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Cuenta Origen (Sale dinero)</label>
                 <select
                   name="walletId"
                   value={originWalletId}
                   onChange={(e) => setOriginWalletId(e.target.value)}
                   required
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl text-slate-900 bg-white outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl text-slate-900 bg-white outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm"
                 >
                   {wallets.map(w => (
-                    <option key={w.id} value={w.id}>{w.name} (${w.balance.toFixed(2)})</option>
+                    <option key={w.id} value={w.id}>{formatWalletOption(w)}</option>
                   ))}
                 </select>
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Cuenta Destino (Entra)</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Cuenta Destino (Entra / Pago)</label>
                 <select
                   name="destinationWalletId"
                   required
                   defaultValue={destinationWallets[0]?.id || ""}
-                  className="w-full px-4 py-3 border border-gray-300 rounded-xl text-slate-900 bg-white outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+                  className="w-full px-4 py-3 border border-gray-300 rounded-xl text-slate-900 bg-white outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm"
                 >
                   {destinationWallets.map(w => (
-                    <option key={w.id} value={w.id}>{w.name} (${w.balance.toFixed(2)})</option>
+                    <option key={w.id} value={w.id}>{formatWalletOption(w)}</option>
                   ))}
                 </select>
               </div>
@@ -178,17 +188,17 @@ export default function TransactionForm({
       ) : (
         <div>
           <label className="block text-sm font-medium text-slate-700 mb-1">
-            {type === "INCOME" ? "¿A qué cuenta entra?" : "¿De qué cuenta sale?"}
+            {type === "INCOME" ? "¿A qué cuenta entra el dinero?" : "¿Con qué cuenta o tarjeta pagaste?"}
           </label>
           <select
             name="walletId"
             value={originWalletId}
             onChange={(e) => setOriginWalletId(e.target.value)}
             required
-            className="w-full px-4 py-3 border border-gray-300 rounded-xl text-slate-900 bg-white outline-none focus:ring-2 focus:ring-blue-500 font-medium"
+            className="w-full px-4 py-3 border border-gray-300 rounded-xl text-slate-900 bg-white outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm"
           >
             {wallets.map(w => (
-              <option key={w.id} value={w.id}>{w.name} (${w.balance.toFixed(2)})</option>
+              <option key={w.id} value={w.id}>{formatWalletOption(w)}</option>
             ))}
           </select>
         </div>

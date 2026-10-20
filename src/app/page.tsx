@@ -27,7 +27,8 @@ export default async function Home() {
     orderBy: { createdAt: "desc" },
   });
 
-  const totalBalance = wallets.reduce((acc, w) => acc + w.balance, 0);
+  const liquidWallets = wallets.filter((w) => w.type !== "CREDIT");
+  const totalBalance = liquidWallets.reduce((acc, w) => acc + w.balance, 0);
 
   // 2. Apartados / Fondos de reserva
   const sinkingFunds = await prisma.sinkingFund.findMany({
@@ -62,6 +63,7 @@ export default async function Home() {
   const creditCards = await prisma.creditCard.findMany({
     where: { userId },
     include: {
+      wallet: true,
       purchases: {
         where: { isCompleted: false },
       },
@@ -69,7 +71,9 @@ export default async function Home() {
   });
 
   const totalCreditMonthlyPayment = creditCards.reduce((acc, card) => {
-    return acc + card.purchases.reduce((sum, p) => sum + p.monthlyPayment, 0);
+    const msiMonthly = card.purchases.reduce((sum, p) => sum + p.monthlyPayment, 0);
+    const revolving = card.wallet ? Math.max(0, -card.wallet.balance) : 0;
+    return acc + msiMonthly + revolving;
   }, 0);
 
   const totalActiveCreditPurchases = creditCards.reduce((acc, card) => {

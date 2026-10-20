@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { payCreditPurchaseMonth, deleteCreditPurchase, deleteCreditCard } from "../actions/creditCard";
+import { payCreditPurchaseMonth, deleteCreditPurchase, deleteCreditCard, payCreditCard } from "../actions/creditCard";
 import CreditPurchaseForm from "./CreditPurchaseForm";
 
 export type CreditPurchaseItem = {
@@ -20,33 +20,47 @@ export type CreditCardWithPurchases = {
   cutoffDay: number | null;
   paymentDay: number | null;
   purchases: CreditPurchaseItem[];
+  wallet?: { id: string; name: string; balance: number } | null;
 };
+
+type LiquidWallet = { id: string; name: string; balance: number };
 
 export default function CreditCardsSection({
   creditCards,
+  liquidWallets = [],
 }: {
   creditCards: CreditCardWithPurchases[];
+  liquidWallets?: LiquidWallet[];
 }) {
   const [loadingPurchaseId, setLoadingPurchaseId] = useState<string | null>(null);
   const [loadingCardId, setLoadingCardId] = useState<string | null>(null);
   const [selectedCardForPurchase, setSelectedCardForPurchase] = useState<CreditCardWithPurchases | null>(null);
+  const [payingCard, setPayingCard] = useState<CreditCardWithPurchases | null>(null);
+  const [isPaying, setIsPaying] = useState(false);
 
-  // Gran total a pagar este mes entre todas las tarjetas
-  const totalMonthlyPaymentAll = creditCards.reduce((acc, card) => {
+  // Gran total de gastos corrientes (deuda revolvente en tarjetas)
+  const totalRevolvingDebtAll = creditCards.reduce((acc, card) => {
+    return acc + (card.wallet ? Math.max(0, -card.wallet.balance) : 0);
+  }, 0);
+
+  // Gran total de MSI a pagar este mes
+  const totalMsiMonthlyAll = creditCards.reduce((acc, card) => {
     const active = card.purchases.filter((p) => !p.isCompleted);
     return acc + active.reduce((sum, p) => sum + p.monthlyPayment, 0);
   }, 0);
 
-  // Gran total de deuda restante acumulada
+  // Total combinado requerido este mes (Gastos corrientes + Mensualidades MSI)
+  const totalMonthlyPaymentAll = totalRevolvingDebtAll + totalMsiMonthlyAll;
+
+  // Gran total de deuda restante acumulada (MSI restantes + gastos corrientes)
   const totalRemainingDebtAll = creditCards.reduce((acc, card) => {
     const active = card.purchases.filter((p) => !p.isCompleted);
-    return (
-      acc +
-      active.reduce((sum, p) => {
-        const remainingMonths = Math.max(0, p.totalMonths - p.paidMonths);
-        return sum + remainingMonths * p.monthlyPayment;
-      }, 0)
-    );
+    const msiRemaining = active.reduce((sum, p) => {
+      const remainingMonths = Math.max(0, p.totalMonths - p.paidMonths);
+      return sum + remainingMonths * p.monthlyPayment;
+    }, 0);
+    const cardRevolving = card.wallet ? Math.max(0, -card.wallet.balance) : 0;
+    return acc + msiRemaining + cardRevolving;
   }, 0);
 
   return (
@@ -93,14 +107,17 @@ export default function CreditCardsSection({
           const activePurchases = card.purchases.filter((p) => !p.isCompleted);
           const completedPurchases = card.purchases.filter((p) => p.isCompleted);
 
-          const cardMonthlyTotal = activePurchases.reduce(
+          const cardMsiMonthly = activePurchases.reduce(
             (sum, p) => sum + p.monthlyPayment,
             0
           );
+          const cardRevolvingDebt = card.wallet ? Math.max(0, -card.wallet.balance) : 0;
+          const cardTotalDueMonth = cardMsiMonthly + cardRevolvingDebt;
+
           const cardTotalRemaining = activePurchases.reduce((sum, p) => {
             const rem = Math.max(0, p.totalMonths - p.paidMonths);
             return sum + rem * p.monthlyPayment;
-          }, 0);
+          }, 0) + cardRevolvingDebt;
 
           return (
             <div
@@ -132,16 +149,16 @@ export default function CreditCardsSection({
                       Pagar este mes:
                     </span>
                     <span className="text-xl font-black text-emerald-400">
-                      ${Math.ceil(cardMonthlyTotal).toLocaleString("es-MX")}
+                      ${Math.ceil(cardTotalDueMonth).toLocaleString("es-MX")}
                     </span>
                   </div>
                 </div>
 
-                {/* Sub-resumen */}
+                {/* Sub-resumen con desglose de deuda */}
                 <div className="flex justify-between items-center mt-3 pt-3 border-t border-slate-700/60 text-xs text-slate-300">
-                  <span>
-                    {activePurchases.length}{" "}
-                    {activePurchases.length === 1 ? "compra activa" : "compras activas"}
+                  <span className="flex items-center gap-2">
+                    <span>Gastos: ${Math.ceil(cardRevolvingDebt).toLocaleString("es-MX")}</span>
+                    {cardMsiMonthly > 0 && <span>• MSI: ${Math.ceil(cardMsiMonthly).toLocaleString("es-MX")}</span>}
                   </span>
                   <span>
                     Deuda total: ${Math.ceil(cardTotalRemaining).toLocaleString("es-MX")}
@@ -273,15 +290,26 @@ export default function CreditCardsSection({
                 )}
               </div>
 
-              {/* Footer de la Tarjeta con botón de agregar compra y eliminar tarjeta */}
-              <div className="p-4 bg-slate-50 border-t border-gray-100 flex justify-between items-center text-xs">
-                <button
-                  type="button"
-                  onClick={() => setSelectedCardForPurchase(card)}
-                  className="bg-slate-900 hover:bg-slate-800 text-white font-bold px-3.5 py-2 rounded-xl transition-all shadow-sm active:scale-95"
-                >
-                  + Agregar Compra a {card.name}
-                </button>
+              {/* Footer de la Tarjeta con botón de agregar compra, pagar tarjeta y eliminar tarjeta */}
+              <div className="p-4 bg-slate-50 border-t border-gray-100 flex flex-wrap justify-between items-center gap-2 text-xs">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedCardForPurchase(card)}
+                    className="bg-slate-900 hover:bg-slate-800 text-white font-bold px-3 py-2 rounded-xl transition-all shadow-sm active:scale-95 text-xs cursor-pointer"
+                  >
+                    + Compra
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setPayingCard(card)}
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-3 py-2 rounded-xl transition-all shadow-sm active:scale-95 text-xs flex items-center gap-1 cursor-pointer"
+                    title="Transferir desde una cuenta de débito para abonar o liquidar"
+                  >
+                    💳 Pagar Tarjeta
+                  </button>
+                </div>
 
                 <form
                   action={async (formData) => {
@@ -296,7 +324,7 @@ export default function CreditCardsSection({
                   <button
                     type="submit"
                     disabled={loadingCardId === card.id}
-                    className="text-slate-400 hover:text-rose-600 font-semibold transition-colors disabled:opacity-50"
+                    className="text-slate-400 hover:text-rose-600 font-semibold transition-colors disabled:opacity-50 cursor-pointer"
                   >
                     Eliminar Tarjeta
                   </button>
@@ -313,9 +341,9 @@ export default function CreditCardsSection({
           <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-lg w-full shadow-2xl relative animate-in fade-in zoom-in duration-200">
             <button
               onClick={() => setSelectedCardForPurchase(null)}
-              className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 p-2 text-xl leading-none"
+              className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 p-2 text-xl leading-none cursor-pointer"
             >
-              
+              ✕
             </button>
             <h3 className="text-xl font-bold text-slate-900 mb-1">
               Nueva Compra en {selectedCardForPurchase.name}
@@ -329,6 +357,110 @@ export default function CreditCardsSection({
               defaultCardId={selectedCardForPurchase.id}
               onSuccess={() => setSelectedCardForPurchase(null)}
             />
+          </div>
+        </div>
+      )}
+
+      {/* Modal para Pagar Tarjeta de Crédito (Transferencia desde Débito) */}
+      {payingCard && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 max-w-md w-full shadow-2xl relative animate-in fade-in zoom-in duration-200">
+            <button
+              onClick={() => setPayingCard(null)}
+              className="absolute top-5 right-5 text-gray-400 hover:text-gray-600 p-2 text-xl leading-none cursor-pointer"
+            >
+              ✕
+            </button>
+            <h3 className="text-xl font-bold text-slate-900 mb-1">
+              Pagar {payingCard.name}
+            </h3>
+            <p className="text-xs text-slate-500 mb-6">
+              Transfiere dinero desde una de tus cuentas de débito o efectivo para liquidar tu tarjeta.
+            </p>
+
+            {liquidWallets.length === 0 ? (
+              <div className="p-4 bg-amber-50 border border-amber-200 text-amber-800 rounded-xl text-xs font-medium">
+                No tienes cuentas de débito o efectivo registradas para realizar el pago. Agrega una primero en la sección de Cuentas.
+              </div>
+            ) : (
+              <form
+                action={async (formData) => {
+                  setIsPaying(true);
+                  try {
+                    await payCreditCard(formData);
+                    setPayingCard(null);
+                  } catch (err: any) {
+                    alert(err?.message || "Ocurrió un error al procesar el pago.");
+                  } finally {
+                    setIsPaying(false);
+                  }
+                }}
+                className="space-y-4"
+              >
+                <input type="hidden" name="creditCardId" value={payingCard.id} />
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Cuenta Origen (Sale el dinero):
+                  </label>
+                  <select
+                    name="fromWalletId"
+                    required
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl text-slate-900 bg-white outline-none focus:ring-2 focus:ring-blue-500 font-medium text-sm"
+                  >
+                    {liquidWallets.map((w) => (
+                      <option key={w.id} value={w.id}>
+                        {w.name} (${w.balance.toFixed(2)})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1">
+                    Monto a Transferir / Pagar ($):
+                  </label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    min="0.01"
+                    name="amount"
+                    required
+                    defaultValue={
+                      payingCard.wallet && payingCard.wallet.balance < 0
+                        ? Math.abs(payingCard.wallet.balance).toFixed(2)
+                        : "0.00"
+                    }
+                    className="w-full px-4 py-3 border border-gray-300 rounded-xl text-slate-900 font-bold outline-none focus:ring-2 focus:ring-blue-500 text-base"
+                  />
+                  <p className="text-[11px] text-slate-400 mt-1">
+                    {payingCard.wallet && payingCard.wallet.balance < 0
+                      ? `Deuda corriente actual: $${Math.abs(payingCard.wallet.balance).toFixed(2)}`
+                      : "Tarjeta sin deuda corriente"}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-semibold text-slate-700 mb-1">
+                    Concepto / Nota (opcional):
+                  </label>
+                  <input
+                    type="text"
+                    name="notes"
+                    placeholder={`Pago a ${payingCard.name}`}
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-xl text-slate-900 outline-none focus:ring-2 focus:ring-blue-500 text-sm font-medium"
+                  />
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={isPaying}
+                  className="w-full bg-emerald-600 hover:bg-emerald-700 text-white font-bold py-3.5 px-6 rounded-xl transition-all shadow-md active:scale-95 disabled:opacity-50 text-sm cursor-pointer mt-2"
+                >
+                  {isPaying ? "Procesando pago..." : "Confirmar Pago (Transferencia)"}
+                </button>
+              </form>
+            )}
           </div>
         </div>
       )}

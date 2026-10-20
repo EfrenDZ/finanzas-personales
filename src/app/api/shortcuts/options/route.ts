@@ -16,7 +16,7 @@ export async function GET(request: Request) {
     const [wallets, categories, receivables] = await Promise.all([
       prisma.wallet.findMany({
         where: { userId: user.id },
-        select: { id: true, name: true, balance: true },
+        select: { id: true, name: true, balance: true, type: true },
         orderBy: { name: "asc" },
       }),
       prisma.category.findMany({

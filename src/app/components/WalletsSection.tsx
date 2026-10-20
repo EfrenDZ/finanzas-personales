@@ -9,6 +9,7 @@ export interface Wallet {
   id: string;
   name: string;
   balance: number;
+  type?: "DEBIT" | "CREDIT" | "CASH";
   isDefault?: boolean;
 }
 
@@ -52,9 +53,24 @@ export default function WalletsSection({
           >
             <div>
               <div className="flex items-center justify-between mb-2">
-                <h3 className="text-gray-400 text-xs font-bold uppercase tracking-wider">
-                  {wallet.name}
-                </h3>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <h3 className="text-gray-800 text-sm font-bold">
+                    {wallet.name}
+                  </h3>
+                  {wallet.type === "CREDIT" ? (
+                    <span className="text-[10px] font-bold text-purple-700 bg-purple-50 border border-purple-200/60 px-2 py-0.5 rounded-lg">
+                      💳 Crédito
+                    </span>
+                  ) : wallet.type === "CASH" ? (
+                    <span className="text-[10px] font-bold text-emerald-700 bg-emerald-50 border border-emerald-200/60 px-2 py-0.5 rounded-lg">
+                      💵 Efectivo
+                    </span>
+                  ) : (
+                    <span className="text-[10px] font-bold text-blue-700 bg-blue-50 border border-blue-200/60 px-2 py-0.5 rounded-lg">
+                      🏦 Débito
+                    </span>
+                  )}
+                </div>
                 {wallet.isDefault ? (
                   <span className="inline-flex items-center gap-1 text-[11px] font-bold text-amber-600 bg-amber-50 border border-amber-200/60 px-2 py-0.5 rounded-lg">
                     ★ Predeterminada
@@ -76,9 +92,23 @@ export default function WalletsSection({
                   </button>
                 )}
               </div>
-              <p className="text-2xl sm:text-3xl font-bold text-slate-800">
-                ${wallet.balance.toFixed(2)}
-              </p>
+              {wallet.type === "CREDIT" ? (
+                <div>
+                  <p className={`text-2xl sm:text-3xl font-extrabold ${wallet.balance < 0 ? "text-rose-600" : "text-slate-800"}`}>
+                    {wallet.balance < 0 ? `-$${Math.abs(wallet.balance).toFixed(2)}` : `$${wallet.balance.toFixed(2)}`}
+                  </p>
+                  <p className={`text-xs font-semibold mt-1 ${wallet.balance < 0 ? "text-rose-500" : "text-emerald-600"}`}>
+                    {wallet.balance < 0 ? `Deuda actual: $${Math.abs(wallet.balance).toFixed(2)}` : "Al día (Sin deuda corriente)"}
+                  </p>
+                </div>
+              ) : (
+                <div>
+                  <p className="text-2xl sm:text-3xl font-bold text-slate-800">
+                    ${wallet.balance.toFixed(2)}
+                  </p>
+                  <p className="text-xs text-slate-400 font-medium mt-1">Saldo disponible</p>
+                </div>
+              )}
             </div>
 
             <div className="mt-5 pt-3 border-t border-gray-100 flex items-center justify-between gap-1 sm:gap-2">
